@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trading Journal · RG CHARTS</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0a0b0d;
+  --bg2:      #0f1115;
+  --surface:  #141720;
+  --surface2: #1a1f2e;
+  --surface3: #1f2436;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.10);
+  --border3:  rgba(255,255,255,0.16);
+  --text:     #f0f2f5;
+  --text2:    #c5c9d6;
+  --muted:    #6b7280;
+  --muted2:   #9ca3af;
+  --accent:   #7c3aed;
+  --accent2:  #8b5cf6;
+  --accent3:  #a78bfa;
+  --accent-dim: rgba(124,58,237,0.12);
+  --accent-glow: rgba(124,58,237,0.25);
+  --green:    #10b981;
+  --green-dim: rgba(16,185,129,0.12);
+  --red:      #ef4444;
+  --red-dim:  rgba(239,68,68,0.10);
+  --amber:    #f59e0b;
+  --blue:     #3b82f6;
+  --blue-dim: rgba(59,130,246,0.12);
+  --radius:   8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --nav-h:    56px;
+}
+
+body.light-mode {
+  --bg:       #f4f5f7;
+  --bg2:      #eef0f3;
+  --surface:  #ffffff;
+  --surface2: #f8f9fc;
+  --surface3: #eef0f5;
+  --border:   rgba(0,0,0,0.07);
+  --border2:  rgba(0,0,0,0.11);
+  --border3:  rgba(0,0,0,0.18);
+  --text:     #0f1115;
+  --text2:    #374151;
+  --muted:    #6b7280;
+  --muted2:   #9ca3af;
+  --accent-dim: rgba(124,58,237,0.08);
+  --accent-glow: rgba(124,58,237,0.15);
+  --green-dim: rgba(16,185,129,0.10);
+  --red-dim:   rgba(239,68,68,0.08);
+}
+
+body.light-mode .nav { background: rgba(255,255,255,0.95); }
+body.light-mode .btn:hover { background: #e5e7eb; }
+body.light-mode .form-field select option,
+body.light-mode .ctrl-card select option { background: #ffffff; color: #111; }
+body.light-mode .month-picker-drop { background: #ffffff !important; border-color: var(--border3) !important; }
+body.light-mode select option { background: #ffffff; }
+
+html { height: 100%; scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Calibri', 'Calibri Light', Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── TOP NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: var(--nav-h);
+  background: rgba(10,11,13,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px;
+  gap: 0;
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  margin-right: 36px; flex-shrink: 0; cursor: pointer;
+}
+.nav-brand-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff; letter-spacing: -0.5px;
+}
+.nav-brand-name { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+.nav-brand-sub  { font-size: 10px; color: var(--muted); letter-spacing: 0.4px; margin-top: -1px; }
+
+.nav-tabs { display: flex; align-items: center; gap: 2px; flex: 1; }
+.nav-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 7px;
+  font-size: 13px; font-weight: 500; color: var(--muted2);
+  cursor: pointer; border: none; background: none;
+  transition: all 0.15s; white-space: nowrap;
+}
+.nav-tab:hover { color: var(--text); background: var(--surface); }
+.nav-tab.active { color: var(--text); background: var(--surface2); }
+.nav-tab.active .nav-tab-dot { opacity: 1; }
+.nav-tab-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent2); opacity: 0; transition: opacity 0.15s;
+}
+.nav-tab i { font-size: 15px; }
+
+.nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+
+/* ── SIDEBAR ── */
+.layout {
+  display: flex;
+  margin-top: var(--nav-h);
+  min-height: calc(100vh - var(--nav-h));
+}
+.sidebar {
+  width: 190px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #3730a3 0%, #312e81 40%, #1e1b4b 100%);
+  border-right: 1px solid rgba(99,102,241,0.25);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 12px;
+  gap: 6px;
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+}
+.sidebar-tab {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius);
+  font-size: 15px; font-weight: 500; color: #c7d2fe;
+  cursor: pointer; border: none; background: none;
+  transition: all 0.15s; font-family: inherit; width: 100%;
+  text-align: left; white-space: nowrap;
+}
+.sidebar-tab:hover { background: rgba(165,180,252,0.15); color: #e0e7ff; }
+.sidebar-tab.active { background: rgba(165,180,252,0.22); color: #fff; font-weight: 700; }
+.sidebar-tab i { font-size: 18px; flex-shrink: 0; }
+.sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: #a5b4fc; margin-left: auto; flex-shrink: 0; opacity: 0; }
+.sidebar-tab.active .sidebar-dot { opacity: 1; }
+
+/* ── MAIN LAYOUT ── */
+.main {
+  flex: 1;
+  padding: 32px clamp(20px, 3vw, 48px);
+  min-width: 0;
+}
+
+/* ── PAGE HEADER ── */
+.page-hd {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+}
+.page-hd-left {}
+.page-hd-eyebrow { font-size: 12px; font-weight: 600; color: var(--accent3); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px; }
+.page-hd-title { font-size: 30px; font-weight: 700; color: var(--text); letter-spacing: -0.6px; line-height: 1.2; }
+.page-hd-sub { font-size: 15px; color: var(--muted); margin-top: 4px; }
+.page-hd-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── FY / MONTH SELECTORS ── */
+.selectors-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  margin-bottom: 20px;
+}
+.sel-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 18px;
+  transition: border-color 0.15s;
+}
+.sel-card:hover { border-color: var(--border2); }
+.sel-label { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.sel-val { font-size: 18px; font-weight: 700; color: var(--text); }
+.sel-card select, .sel-card input[type="number"] {
+  background: transparent; border: none; outline: none;
+  font-size: 22px; font-weight: 700; color: var(--text);
+  font-family: inherit; width: 100%;
+  -webkit-appearance: none; cursor: pointer;
+}
+.sel-card select option { background: #141720; }
+body.light-mode .sel-card select option { background: #fff; }
+
+/* ── METRICS ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.12s;
+}
+.metric-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.metric-card::after {
+  content: ''; position: absolute; top: 0; left: 18px; right: 18px;
+  height: 1px; background: linear-gradient(90deg, transparent, var(--stripe-c, transparent), transparent);
+}
+.metric-card.mc-purple { --stripe-c: var(--accent2); }
+.metric-card.mc-green  { --stripe-c: var(--green); }
+.metric-card.mc-blue   { --stripe-c: var(--blue); }
+.metric-card.mc-red    { --stripe-c: var(--red); }
+.metric-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; margin-bottom: 10px;
+}
+.mc-purple .metric-icon { background: var(--accent-dim); color: var(--accent3); }
+.mc-green  .metric-icon { background: var(--green-dim); color: var(--green); }
+.mc-blue   .metric-icon { background: var(--blue-dim);  color: var(--blue); }
+.mc-red    .metric-icon { background: var(--red-dim);   color: var(--red); }
+.metric-lbl  { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+.metric-num  { font-size: 24px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+.metric-num.pos { color: var(--green); }
+.metric-num.neg { color: var(--red); }
+.metric-num.mut { color: var(--muted2); }
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex; gap: 1px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 4px;
+  width: fit-content; margin-bottom: 20px;
+}
+.tab {
+  padding: 7px 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--muted2); border-radius: 9px;
+  border: none; background: none; transition: all 0.15s;
+  font-family: inherit;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--surface2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+/* ── PANELS ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── FORM CARD ── */
+.form-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 22px 24px;
+  margin-bottom: 16px;
+}
+.form-title {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.form-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.form-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px; margin-bottom: 18px;
+}
+.form-field label {
+  display: block; font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+}
+.form-field input, .form-field select {
+  width: 100%; padding: 9px 12px;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); font-size: 13px; color: var(--text);
+  outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.form-field input:focus, .form-field select:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.form-field select option { background: #141720; }
+.form-field .computed {
+  padding: 9px 12px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; color: var(--muted); min-height: 38px; font-weight: 500;
+}
+.form-field .computed.pos { color: var(--green); }
+.form-field .computed.neg { color: var(--red); }
+.form-actions { display: flex; align-items: center; gap: 12px; }
+.status-msg { font-size: 12px; color: var(--muted); }
+.status-msg.saving { color: var(--blue); }
+.status-msg.saved  { color: var(--green); }
+.status-msg.error  { color: var(--red); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text2); transition: all 0.15s; font-family: inherit;
+}
+.btn:hover { border-color: var(--border3); background: var(--surface3); color: var(--text); }
+.btn i { font-size: 15px; }
+.btn-primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); box-shadow: 0 4px 16px rgba(124,58,237,0.45); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 5px 8px; }
+.btn-ghost:hover { color: var(--red); background: var(--red-dim); border-color: transparent; }
+.btn-edit { border-color: rgba(59,130,246,0.3); color: var(--blue); }
+.btn-edit:hover { background: var(--blue-dim); }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 5px 12px 5px 8px;
+  cursor: pointer; font-size: 12px; color: var(--muted2);
+  transition: all 0.15s; user-select: none; font-family: inherit;
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--accent); }
+.theme-toggle i { font-size: 14px; }
+
+/* ── DRIVE BADGE ── */
+.drive-badge {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px 5px 8px;
+  font-size: 12px; color: var(--muted2);
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot.loading { background: var(--amber); animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── TABLE ── */
+.table-wrap {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); overflow: hidden; overflow-x: auto;
+}
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+thead { background: var(--bg2); }
+th {
+  padding: 11px 14px; text-align: left;
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.7px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+td {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text2); vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background 0.1s; }
+tbody tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
+.tag-btst  { background: var(--blue-dim); color: #93c5fd; }
+.tag-intra { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.pnl-pos { color: var(--green); font-weight: 600; }
+.pnl-neg { color: var(--red); font-weight: 600; }
+
+.empty-state { text-align: center; padding: 52px 20px; color: var(--muted); }
+.empty-state i { font-size: 36px; display: block; margin-bottom: 10px; opacity: 0.3; }
+.empty-state p { font-size: 13px; }
+
+/* ── SORT/FILTER ── */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text2); }
+.sort-icon { font-size: 9px; margin-left: 4px; opacity: 0.3; }
+th.sort-asc  .sort-icon::before { content: '▲'; opacity: 1; }
+th.sort-desc .sort-icon::before { content: '▼'; opacity: 1; }
+th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--accent3); }
+
+.filter-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 10px 14px; margin-bottom: 12px;
+}
+.filter-bar-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.7px; white-space: nowrap; }
+.filter-bar input[type="date"], .filter-bar select {
+  padding: 5px 9px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); font-size: 12px; color: var(--text2);
+  outline: none; cursor: pointer; transition: border-color 0.15s; font-family: inherit;
+}
+.filter-bar input[type="number"] {
+  padding: 5px 9px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); font-size: 12px; color: var(--text2);
+  outline: none; transition: border-color 0.15s; font-family: inherit; width: 80px;
+}
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent2); }
+.filter-bar select option { background: #141720; }
+.filter-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+.filter-active-badge {
+  display: none; background: var(--accent); color: #fff;
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+}
+.filter-active-badge.show { display: inline-block; }
+
+/* ── ANALYTICS CARDS ── */
+.a-grid { display: flex; flex-direction: column; gap: 16px; }
+.a-row { display: grid; gap: 12px; }
+.a-row-2 { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); align-items: stretch; }
+.a-row-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.a-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 20px 22px;
+  transition: border-color 0.15s;
+}
+.a-card:hover { border-color: var(--border2); }
+.a-card-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.a-card-title select {
+  font-size: 11px; background: var(--bg2); border: 1px solid var(--border2);
+  color: var(--muted2); border-radius: 6px; padding: 3px 8px; cursor: pointer;
+  font-family: inherit; outline: none;
+}
+.stats-mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px,1fr)); gap: 10px; }
+.sm { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+.sm-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; }
+.sm-val { font-size: 24px; font-weight: 700; color: var(--text); margin-top: 2px; }
+.sm-val.pos { color: var(--green); }
+.sm-val.neg { color: var(--red); }
+
+/* Calendar */
+.cal-dow-row { display:grid; grid-template-columns:repeat(7,1fr) 56px; gap:3px; margin-bottom:4px; }
+.cal-dow { font-size:9px; font-weight:700; color:var(--muted); text-align:center; text-transform:uppercase; letter-spacing:0.5px; padding:3px 0; }
+.cal-days { display:grid; grid-template-columns:repeat(7,1fr) 56px; gap:3px; }
+.c-cell.week-pnl-cell { background: var(--surface2); border-radius:7px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 2px; min-height:52px; border-left: 1px solid var(--border2); }
+.c-cell.week-pnl-cell.week-win  { background: rgba(16,185,129,0.12); }
+.c-cell.week-pnl-cell.week-loss { background: rgba(239,68,68,0.10); }
+.c-cell.week-pnl-cell .c-pnl { font-size:11px; font-weight:800; margin-top:0; line-height:1; }
+.c-cell.week-pnl-cell.week-win .c-pnl  { color: var(--green); }
+.c-cell.week-pnl-cell.week-loss .c-pnl { color: var(--red); }
+.cal-dow.week-header { color: var(--accent3); border-left: 1px solid var(--border2); }
+.c-cell { border-radius:7px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 2px; min-height:52px; }
+.c-cell.empty { background:transparent; }
+.c-cell.no-trade { background:var(--bg2); color:var(--muted); }
+.c-cell.win  { background: rgba(16,185,129,0.12); }
+.c-cell.loss { background: rgba(239,68,68,0.10); }
+.c-cell.today { outline:1.5px solid var(--accent2); outline-offset:-1.5px; }
+.c-day { font-size:13px; font-weight:700; line-height:1; color:var(--muted); }
+.c-cell.win  .c-day { color: var(--green); }
+.c-cell.loss .c-day { color: var(--red); }
+.c-pnl { font-size:11px; font-weight:700; margin-top:3px; line-height:1; }
+.c-cell.win  .c-pnl { color: var(--green); }
+.c-cell.loss .c-pnl { color: var(--red); }
+.cal-nav { display:flex; align-items:center; gap:4px; }
+.cal-nav button { background:none; border:none; color:var(--muted); cursor:pointer; padding:2px 5px; border-radius:5px; font-size:14px; }
+.cal-nav button:hover { color:var(--text); }
+.cal-nav span { font-size:11px; color:var(--muted2); min-width:60px; text-align:center; }
+.chart-wrap { position:relative; height:160px; }
+
+/* Weekly P&L cards */
+.week-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px;
+  transition: border-color 0.15s, transform 0.12s;
+  position: relative; overflow: hidden;
+}
+.week-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 3px 0 0 3px;
+  background: var(--border2);
+}
+.week-card.wc-profit { border-color: rgba(16,185,129,0.2); }
+.week-card.wc-profit::before { background: var(--green); }
+.week-card.wc-loss   { border-color: rgba(239,68,68,0.2); }
+.week-card.wc-loss::before   { background: var(--red); }
+.week-card:hover { transform: translateY(-2px); border-color: var(--border2); }
+.week-card.wc-profit:hover { border-color: rgba(16,185,129,0.35); }
+.week-card.wc-loss:hover   { border-color: rgba(239,68,68,0.3); }
+.week-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.week-dates { font-size: 10px; color: var(--muted); }
+.week-pnl { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+.week-pnl.pos  { color: var(--green); }
+.week-pnl.neg  { color: var(--red); }
+.week-pnl.zero { color: var(--muted2); }
+.week-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 2px; }
+.week-badge {
+  display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: 5px; letter-spacing: 0.2px;
+}
+.week-badge.days   { background: var(--blue-dim); color: #93c5fd; }
+.week-badge.trades { background: rgba(167,139,250,0.15); color: var(--accent3); }
+.week-badge.wr-good { background: var(--green-dim); color: var(--green); }
+.week-badge.wr-bad  { background: var(--red-dim);   color: var(--red); }
+
+/* Bar chart */
+.bar-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:12px; }
+.bar-label { width:70px; color:var(--muted2); text-align:right; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-track { flex:1; background:var(--bg2); border-radius:4px; height:18px; overflow:hidden; }
+.bar-fill  { height:100%; border-radius:4px; transition:width 0.4s ease; }
+.bar-val   { width:80px; text-align:right; font-weight:600; flex-shrink:0; font-size:12px; }
+
+/* Import drop zone */
+.drop-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius-lg);
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s; margin-bottom: 12px;
+}
+.drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent2); background: var(--accent-dim); }
+.drop-zone i { font-size: 26px; color: var(--muted); display: block; margin-bottom: 8px; }
+.drop-zone p { color: var(--muted2); font-size: 13px; }
+.drop-zone strong { color: var(--text2); }
+.import-preview { background: var(--bg2); border-radius: var(--radius); padding: 10px 12px; font-size: 12px; color: var(--muted2); max-height: 140px; overflow-y: auto; display:none; margin-bottom:10px; }
+.import-preview table { width:100%; border-collapse:collapse; }
+.import-preview th { font-size:10px; color:var(--muted); text-transform:uppercase; padding:3px 8px; text-align:left; }
+.import-preview td { padding:4px 8px; color:var(--text2); border-top:1px solid var(--border); }
+.col-map { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:12px; }
+.col-map-row { display:flex; align-items:center; gap:8px; font-size:12px; }
+.col-map-row label { color:var(--muted); width:90px; flex-shrink:0; }
+.col-map-row select { flex:1; padding:5px 8px; background:var(--bg2); border:1px solid var(--border2); border-radius:6px; font-size:12px; color:var(--text2); outline:none; font-family:inherit; }
+
+/* Summary */
+.summary-section-title { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; margin:0 0 12px; }
+.monthly-pnl-table { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl); overflow:hidden; width:100%; }
+.monthly-pnl-table table { width:100%; border-collapse:collapse; }
+.monthly-pnl-table th { padding:10px 16px; text-align:left; font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px; border-bottom:1px solid var(--border); background:var(--bg2); white-space:nowrap; }
+.monthly-pnl-table td { padding:11px 16px; border-bottom:1px solid var(--border); font-size:13px; }
+.monthly-pnl-table tr:last-child td { border-bottom:none; }
+.monthly-pnl-table tbody tr:hover td { background:rgba(255,255,255,0.02); }
+.mpt-month { font-weight:600; color:var(--text2); cursor:pointer; }
+.mpt-month:hover { color:var(--accent3); }
+.mpt-pnl-pos { color:var(--green); font-weight:600; }
+.mpt-pnl-neg { color:var(--red); font-weight:600; }
+.mpt-muted { color:var(--muted2); }
+.mpt-total { background:var(--bg2) !important; font-weight:700; }
+
+/* FY Heatmap */
+.fy-heatmap-wrap { overflow-x:auto; }
+.fy-heatmap { display:grid; grid-template-columns:repeat(13, 1fr); gap:0; min-width:680px; }
+.fy-hm-header { font-size:14px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; padding:6px 6px 10px; text-align:center; }
+.fy-hm-label { font-size:15px; font-weight:600; color:var(--muted); padding:6px 10px 6px 0; text-align:right; display:flex; align-items:center; justify-content:flex-end; border-right:1px solid var(--border); }
+.fy-hm-cell { padding:10px 4px; text-align:center; font-size:15px; font-weight:600; border-radius:6px; margin:2px; cursor:default; min-height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.2; }
+.fy-hm-cell.no-data { background:var(--bg2); color:var(--muted); font-size:13px; }
+.fy-hm-cell.profit { background:rgba(16,185,129,0.15); color:var(--green); }
+.fy-hm-cell.loss   { background:rgba(239,68,68,0.12); color:var(--red); }
+.fy-hm-cell.profit.strong { background:rgba(16,185,129,0.28); }
+.fy-hm-cell.loss.strong   { background:rgba(239,68,68,0.24); }
+.fy-hm-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:20px; }
+.fy-hm-stat { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 16px; }
+.fy-hm-stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.fy-hm-stat-val { font-size:22px; font-weight:700; color:var(--text); }
+.fy-hm-stat-val.pos { color:var(--green); }
+.fy-hm-stat-val.neg { color:var(--red); }
+.fy-hm-stat-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* ── TRADE REVIEW ── */
+.review-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:12px 18px; margin-bottom:8px; display:grid; grid-template-columns:160px 70px 100px 90px 1fr 120px 10px; align-items:center; gap:12px; transition:border-color 0.15s; }
+.review-card:hover { border-color:var(--border2); }
+.review-card.rc-win  { border-left:3px solid var(--green); }
+.review-card.rc-loss { border-left:3px solid var(--red); }
+.rc-scrip { font-size:15px; font-weight:800; color:var(--text); }
+.rc-type  { font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:0.5px; text-align:center; }
+.rc-type.win  { background:rgba(16,185,129,0.15); color:var(--green); }
+.rc-type.loss { background:rgba(239,68,68,0.12); color:var(--red); }
+.rc-pnl { font-size:16px; font-weight:800; }
+.rc-pnl.pos { color:var(--green); }
+.rc-pnl.neg { color:var(--red); }
+.rc-note-wrap { display:flex; align-items:center; gap:8px; }
+.rc-note-wrap input { flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:7px 12px; font-size:13px; color:var(--text); font-family:inherit; outline:none; transition:border-color 0.15s; min-width:200px; }
+.rc-note-wrap input:focus { border-color:var(--accent3); }
+.rc-note-wrap input::placeholder { color:var(--muted); }
+.rc-note-wrap button { white-space:nowrap; }
+.rc-saved { font-size:11px; color:var(--green); opacity:0; transition:opacity 0.4s; white-space:nowrap; }
+.rc-saved.show { opacity:1; }
+.rc-reason-select {
+  width:100%; flex-shrink:0;
+  font-size:13px; font-weight:600;
+  font-family:'Calibri', sans-serif;
+  color:var(--text);
+  background:var(--surface2);
+  border:1.5px solid var(--border2);
+  border-radius:8px;
+  padding:8px 34px 8px 12px;
+  cursor:pointer; outline:none;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  transition:border-color 0.15s, box-shadow 0.15s;
+}
+.rc-reason-select:hover { border-color:var(--accent3); }
+.rc-reason-select:focus { border-color:var(--accent3); box-shadow:0 0 0 3px rgba(139,92,246,0.15); }
+.review-empty { text-align:center; padding:60px 20px; color:var(--muted); font-size:15px; }
+.review-empty i { font-size:40px; margin-bottom:12px; display:block; opacity:0.3; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:300; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal-box { background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius-xl); padding:28px; width:100%; box-shadow:0 32px 80px rgba(0,0,0,0.5); }
+.modal { background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius-xl); padding:28px; width:100%; max-width:680px; max-height:90vh; overflow-y:auto; box-shadow:0 32px 80px rgba(0,0,0,0.7); }
+.day-trade-row { display:grid; grid-template-columns:1fr 70px 90px 90px 90px 100px; gap:10px; padding:10px 4px; border-bottom:1px solid var(--border); align-items:center; font-size:14px; }
+.day-trade-row:last-child { border-bottom:none; }
+.day-trade-row .dt-scrip { font-weight:700; color:var(--text); }
+.day-stat { background:var(--bg2); border-radius:var(--radius); padding:10px 14px; text-align:center; }
+.day-stat-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px; }
+.day-stat-val { font-size:18px; font-weight:800; color:var(--text); }
+.modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.modal-title { font-size:16px; font-weight:700; color:var(--text); }
+.modal-close { background:none; border:none; color:var(--muted); cursor:pointer; font-size:22px; padding:2px 6px; border-radius:6px; line-height:1; }
+.modal-close:hover { color:var(--text); background:var(--surface2); }
+
+/* Month picker */
+.month-picker-drop {
+  position:absolute; top:calc(100% + 8px); left:0; right:0;
+  background:var(--surface) !important; border:1px solid var(--border2);
+  border-radius:var(--radius-xl); padding:14px; z-index:300;
+  box-shadow:0 16px 48px rgba(0,0,0,0.6); display:none;
+}
+
+/* Weekly P&L cards */
+.week-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 14px 16px;
+  transition: border-color 0.15s, transform 0.12s;
+  position: relative; overflow: hidden;
+}
+.week-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.week-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--wc-accent, var(--border));
+}
+.week-card.wc-profit { --wc-accent: var(--green); }
+.week-card.wc-loss   { --wc-accent: var(--red); }
+.week-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.week-dates { font-size: 9px; color: var(--muted); margin-bottom: 10px; }
+.week-pnl   { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; margin-bottom: 8px; }
+.week-pnl.pos { color: var(--green); }
+.week-pnl.neg { color: var(--red); }
+.week-pnl.zero { color: var(--muted2); }
+.week-meta  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.week-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+}
+.week-badge.days { background: var(--surface3); color: var(--muted2); }
+.week-badge.trades { background: var(--blue-dim); color: #93c5fd; }
+.week-badge.wr-good { background: var(--green-dim); color: var(--green); }
+.week-badge.wr-bad  { background: var(--red-dim);   color: var(--red); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:4px; height:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+
+/* Responsive */
+@media (max-width: 960px) {
+  .main { padding: 20px 16px; }
+  .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
+  .a-row-2, .a-row-3 { grid-template-columns: 1fr; }
+  .selectors-row { grid-template-columns: 1fr; }
+  .sidebar { width: 56px; padding: 16px 6px; }
+  .sidebar-tab span { display: none; }
+  .sidebar-dot { display: none; }
+}
+@media (min-width: 1600px) {
+  .a-row-3 { grid-template-columns: repeat(3,1fr); }
+  .fy-hm-stats { grid-template-columns: repeat(5,1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="nav">
+  <div class="nav-brand" onclick="window.location.href='rg_charts_home.html'">
+    <div class="nav-brand-mark">RG</div>
+    <div>
+      <div class="nav-brand-name">RG CHARTS</div>
+      <div class="nav-brand-sub">TRADING JOURNAL</div>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <div class="drive-badge">
+      <span class="dot loading" id="driveDot"></span>
+      <span id="driveLabel" style="font-size:11px;">Connecting…</span>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
+      <i class="ti ti-moon" id="themeIcon"></i> <span id="themeLabel">Light</span>
+    </button>
+    <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Export</button>
+  </div>
+</nav>
+
+<!-- LAYOUT WRAPPER -->
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <button class="sidebar-tab active" onclick="showTab('log',this)">
+    <i class="ti ti-file-text"></i> <span>Trade log</span> <span class="sidebar-dot"></span>
+  </button>
+  <button class="sidebar-tab" onclick="showTab('analytics',this);onAnalyticsOpen()">
+    <i class="ti ti-chart-bar"></i> <span>Analytics</span> <span class="sidebar-dot"></span>
+  </button>
+  <button class="sidebar-tab" onclick="showTab('summary',this);onSummaryOpen()">
+    <i class="ti ti-calendar-stats"></i> <span>Summary</span> <span class="sidebar-dot"></span>
+  </button>
+  <button class="sidebar-tab" onclick="showTab('upload',this)">
+    <i class="ti ti-upload"></i> <span>Upload</span> <span class="sidebar-dot"></span>
+  </button>
+  <button class="sidebar-tab" onclick="showTab('review',this);renderTradeReview()">
+    <i class="ti ti-microscope"></i> <span>Trade Review</span> <span class="sidebar-dot"></span>
+  </button>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- Page header -->
+  <div class="page-hd">
+    <div class="page-hd-left">
+      <div class="page-hd-eyebrow">Performance Dashboard</div>
+      <div class="page-hd-title">Trading Journal</div>
+      <div class="page-hd-sub" id="pageSubtitle">Loading…</div>
+    </div>
+  </div>
+
+  <!-- FY Row -->
+  <div class="selectors-row" style="margin-bottom:12px">
+    <div class="sel-card">
+      <div class="sel-label">Trading Financial Year</div>
+      <select id="selFY" onchange="onFYChange()" style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
+        <option value="2025">FY 2024-25</option>
+        <option value="2026" selected>FY 2025-26</option>
+        <option value="2027">FY 2026-27</option>
+        <option value="2028">FY 2027-28</option>
+        <option value="2029">FY 2028-29</option>
+        <option value="2030">FY 2029-30</option>
+        <option value="2031">FY 2030-31</option>
+        <option value="2032">FY 2031-32</option>
+        <option value="2033">FY 2032-33</option>
+        <option value="2034">FY 2033-34</option>
+        <option value="2035">FY 2034-35</option>
+      </select>
+    </div>
+    <div class="sel-card" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
+      <div>
+        <div class="sel-label">FY Capital (₹)</div>
+        <input type="number" id="fyCapital" placeholder="e.g. 500000"
+          style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
+          oninput="onFYCapitalChange()" />
+      </div>
+      <div>
+        <div class="sel-label">FY P&amp;L (₹)</div>
+        <div id="fyPnl" style="font-size:22px;font-weight:700;color:var(--muted);">—</div>
+      </div>
+      <div>
+        <div class="sel-label">FY Return</div>
+        <div id="fyPnlPct" style="font-size:22px;font-weight:700;color:var(--muted);">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Month + Capital -->
+  <div class="selectors-row">
+    <div class="sel-card" style="position:relative">
+      <div class="sel-label">Trading Month</div>
+      <div id="monthPickerDisplay" onclick="toggleMonthPicker()"
+        style="font-size:22px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;">
+        <span id="monthPickerLabel">Jun 2026</span>
+        <i class="ti ti-chevron-down" style="font-size:13px;color:var(--muted)"></i>
+      </div>
+      <div id="monthPickerDrop" class="month-picker-drop">
+        <div id="mpYearView" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <button onclick="mpYearScroll(-12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
+            <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Select Year</span>
+            <button onclick="mpYearScroll(12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
+          </div>
+          <div id="mpYearGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
+        </div>
+        <div id="mpMonthView">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <button onclick="mpYearStep(-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
+            <button onclick="showYearView()" style="background:none;border:none;color:var(--accent3);cursor:pointer;font-size:14px;font-weight:700;padding:2px 8px;border-radius:6px;text-decoration:underline;text-underline-offset:2px;font-family:inherit;" id="mpYearBtn">2026 ↩</button>
+            <button onclick="mpYearStep(1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
+          </div>
+          <div id="mpMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sel-card">
+      <div class="sel-label">Month Capital (₹)</div>
+      <input type="number" id="monthCapital" placeholder="e.g. 500000" oninput="onCapitalChange()"
+        style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;" />
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card mc-purple">
+      <div class="metric-icon"><i class="ti ti-trending-up"></i></div>
+      <div class="metric-lbl">Total P&amp;L</div>
+      <div class="metric-num mut" id="mPnl">₹0</div>
+    </div>
+    <div class="metric-card mc-purple">
+      <div class="metric-icon"><i class="ti ti-chart-pie"></i></div>
+      <div class="metric-lbl">PF Impact</div>
+      <div class="metric-num mut" id="mImpact">0.00%</div>
+    </div>
+    <div class="metric-card mc-green">
+      <div class="metric-icon"><i class="ti ti-target"></i></div>
+      <div class="metric-lbl">Win Rate</div>
+      <div class="metric-num mut" id="mWin">—</div>
+    </div>
+    <div class="metric-card mc-blue">
+      <div class="metric-icon"><i class="ti ti-activity"></i></div>
+      <div class="metric-lbl">Sharpe Ratio</div>
+      <div class="metric-num mut" id="mSharpe">—</div>
+    </div>
+    <div class="metric-card mc-blue">
+      <div class="metric-icon"><i class="ti ti-hash"></i></div>
+      <div class="metric-lbl">Trades</div>
+      <div class="metric-num mut" id="mTrades">0</div>
+    </div>
+    <div class="metric-card mc-red">
+      <div class="metric-icon"><i class="ti ti-arrow-down-right"></i></div>
+      <div class="metric-lbl">Max Drawdown</div>
+      <div class="metric-num mut" id="mDD">₹0</div>
+    </div>
+    <div class="metric-card mc-green">
+      <div class="metric-icon"><i class="ti ti-calculator"></i></div>
+      <div class="metric-lbl">Avg P&amp;L / Trade</div>
+      <div class="metric-num mut" id="mAvg">₹0</div>
+    </div>
+  </div>
+
+  <!-- ── TRADE LOG PANEL ── -->
+  <div id="panelLog" class="panel active">
+    <div class="form-card">
+      <div class="form-title">New trade entry</div>
+      <div class="form-grid">
+        <div class="form-field"><label>Scrip name</label><input type="text" id="fScrip" placeholder="RELIANCE" style="text-transform:uppercase" /></div>
+        <div class="form-field"><label>Entry type</label>
+          <select id="fType"><option value="BTST">BTST</option><option value="INTRA">INTRA</option><option value="SWING">SWING</option></select>
+        </div>
+        <div class="form-field"><label>Bought at (₹)</label><input type="number" id="fBuy" placeholder="0.00" oninput="recalc()" /></div>
+        <div class="form-field"><label>Qty</label><input type="number" id="fQty" placeholder="0" oninput="recalc()" /></div>
+        <div class="form-field"><label>Invested (₹)</label><div class="computed" id="cInvested">—</div></div>
+        <div class="form-field"><label>% on portfolio</label><div class="computed" id="cPfPct">—</div></div>
+        <div class="form-field"><label>Sold at (₹)</label><input type="number" id="fSell" placeholder="0.00" oninput="recalc()" /></div>
+        <div class="form-field"><label>Sold on</label><input type="date" id="fDate" /></div>
+        <div class="form-field"><label>P&amp;L (₹)</label><div class="computed" id="cPnl">—</div></div>
+        <div class="form-field"><label>P&amp;L %</label><div class="computed" id="cPnlPct">—</div></div>
+        <div class="form-field"><label>Impact on PF-M</label><div class="computed" id="cImpact">—</div></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addTrade()"><i class="ti ti-plus"></i> Add trade</button>
+        <span class="status-msg" id="saveStatus"></span>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filterBar">
+      <span class="filter-bar-label"><i class="ti ti-filter" style="font-size:12px;vertical-align:middle;margin-right:3px"></i> Filter</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">Sold on</span>
+        <input type="date" id="filterDateFrom" title="From date" onchange="applyFiltersAndRender()" />
+        <span style="font-size:11px;color:var(--muted)">→</span>
+        <input type="date" id="filterDateTo" title="To date" onchange="applyFiltersAndRender()" />
+      </div>
+      <div class="filter-sep"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">P&amp;L</span>
+        <select id="filterPnlType" onchange="applyFiltersAndRender()">
+          <option value="all">All</option>
+          <option value="profit">Profit only</option>
+          <option value="loss">Loss only</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="filterPnlMin" placeholder="Min ₹" oninput="applyFiltersAndRender()" />
+        <span style="font-size:11px;color:var(--muted)">to</span>
+        <input type="number" id="filterPnlMax" placeholder="Max ₹" oninput="applyFiltersAndRender()" />
+      </div>
+      <div class="filter-sep"></div>
+      <span class="filter-active-badge" id="filterActiveBadge"></span>
+      <button class="btn btn-sm" onclick="clearFilters()" style="color:var(--muted)"><i class="ti ti-x" style="font-size:12px"></i> Clear</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scrip</th><th>Type</th><th>Bought at</th><th>Qty</th>
+            <th>Invested ₹</th><th>% PF</th><th>Sold at</th>
+            <th class="sortable" id="thDate" onclick="toggleSort('date')">Sold on <span class="sort-icon"></span></th>
+            <th class="sortable" id="thPnl" onclick="toggleSort('pnl')">P&amp;L ₹ <span class="sort-icon"></span></th>
+            <th>P&amp;L %</th><th>PF Impact %</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tradeBody">
+          <tr><td colspan="12" class="empty-state">
+            <i class="ti ti-chart-candle"></i>
+            <p>No trades this month. Add your first trade above.</p>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS PANEL ── -->
+  <div id="panelAnalytics" class="panel">
+    <div class="a-grid">
+
+      <div class="a-row a-row-3">
+        <div class="a-card">
+          <div class="a-card-title">Strategy split</div>
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
+            <div class="sm"><div class="sm-label">BTST</div><div class="sm-val" id="aBtst">0</div></div>
+            <div class="sm"><div class="sm-label">INTRA</div><div class="sm-val" id="aIntra">0</div></div>
+          </div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-title">Trade performance</div>
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
+            <div class="sm"><div class="sm-label">Best</div><div class="sm-val pos" id="aBest">₹0</div></div>
+            <div class="sm"><div class="sm-label">Worst</div><div class="sm-val neg" id="aWorst">₹0</div></div>
+          </div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-title">Edge metrics</div>
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
+            <div class="sm"><div class="sm-label">Win streak</div><div class="sm-val" id="aStreak">0</div></div>
+            <div class="sm"><div class="sm-label">Profit factor</div><div class="sm-val" id="aPF">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="a-row a-row-2">
+        <div class="a-card">
+          <div class="a-card-title">
+            <span>P&amp;L Calendar</span>
+            <div class="cal-nav">
+              <button onclick="calPrev()"><i class="ti ti-chevron-left"></i></button>
+              <span id="calNavLabel"></span>
+              <button onclick="calNext()"><i class="ti ti-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="cal-dow-row">
+            <div class="cal-dow">Su</div><div class="cal-dow">Mo</div><div class="cal-dow">Tu</div>
+            <div class="cal-dow">We</div><div class="cal-dow">Th</div><div class="cal-dow">Fr</div><div class="cal-dow">Sa</div>
+            <div class="cal-dow week-header">Week</div>
+          </div>
+          <div class="cal-days" id="calDaysGrid"></div>
+        </div>
+        <div class="a-card" style="display:flex;flex-direction:column;">
+          <div class="a-card-title"><span>Equity curve — month</span></div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:160px;"><canvas id="chartMonth"></canvas></div>
+        </div>
+      </div>
+
+      <div class="a-row a-row-2">
+        <div class="a-card">
+          <div class="a-card-title">
+            <span>Equity Curve — Financial Year</span>
+            <select id="fySelect" onchange="document.getElementById('selFY').value=this.value;onFYChange();renderFYCurves();">
+              <option value="2025">FY 2024-25</option>
+              <option value="2026" selected>FY 2025-26</option>
+              <option value="2027">FY 2026-27</option>
+              <option value="2028">FY 2027-28</option>
+              <option value="2029">FY 2028-29</option>
+              <option value="2030">FY 2029-30</option>
+            </select>
+          </div>
+          <div class="chart-wrap" style="height:420px"><canvas id="chartFY"></canvas></div>
+        </div>
+        <div class="a-card">
+          <div class="a-card-title">
+            <span>Drawdown — Financial Year</span>
+            <span id="fyDDMax" style="font-size:11px;font-weight:600;color:var(--red)"></span>
+          </div>
+          <div class="chart-wrap" style="height:420px"><canvas id="chartFYDD"></canvas></div>
+        </div>
+      </div>
+
+      <div class="a-row a-row-2">
+        <div class="a-card">
+          <div class="a-card-title">P&amp;L by scrip — Top 10 Winners &amp; Losers</div>
+          <div id="pnlBars"><p style="color:var(--muted);font-size:13px">No trades to display.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SUMMARY PANEL ── -->
+  <div id="panelSummary" class="panel">
+    <div class="a-grid">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.4px;" id="summaryFYLabel">FY 2025-26</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;">Apr → Mar · All months</div>
+        </div>
+        <select id="summaryFYSelect" onchange="onSummaryFYChange()"
+          style="font-size:13px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;cursor:pointer;outline:none;font-family:inherit;">
+          <option value="2025">FY 2024-25</option>
+          <option value="2026" selected>FY 2025-26</option>
+          <option value="2027">FY 2026-27</option>
+          <option value="2028">FY 2027-28</option>
+          <option value="2029">FY 2028-29</option>
+          <option value="2030">FY 2029-30</option>
+          <option value="2031">FY 2030-31</option>
+          <option value="2032">FY 2031-32</option>
+        </select>
+      </div>
+      <div class="fy-hm-stats" id="summaryFYStats"></div>
+      <div class="a-card">
+        <div class="a-card-title">FY Calendar — Monthly P&amp;L Heatmap</div>
+        <div class="fy-heatmap-wrap">
+          <div class="fy-heatmap" id="fyHeatmap"></div>
+        </div>
+      </div>
+      <div class="a-card">
+        <div class="a-card-title">Monthly P&amp;L Breakdown</div>
+        <div class="monthly-pnl-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th><th>Capital (₹)</th><th>Trades</th><th>Wins</th><th>Losses</th>
+                <th>Win %</th><th>Best trade</th><th>Worst trade</th>
+                <th>P&amp;L (₹)</th><th>P&amp;L %</th><th>Cumulative P&amp;L</th>
+              </tr>
+            </thead>
+            <tbody id="summaryMonthBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── UPLOAD PANEL ── -->
+  <div id="panelUpload" class="panel">
+    <div class="a-grid">
+      <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.4px;margin-bottom:4px;">Upload</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:20px;">Import your trades from an Excel file</div>
+      <div class="a-card" style="max-width:640px;">
+        <div class="a-card-title">Import from Excel</div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('xlsxFile').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <i class="ti ti-file-spreadsheet"></i>
+          <p><strong>Click to upload</strong> or drag &amp; drop</p>
+          <p style="font-size:11px;margin-top:4px">.xlsx or .xls file</p>
+        </div>
+        <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="onFileSelect(event)" />
+        <div id="importPreviewWrap" class="import-preview"></div>
+        <div id="colMapWrap" style="display:none">
+          <p style="font-size:11px;color:var(--muted);margin-bottom:8px">Map your columns:</p>
+          <div class="col-map">
+            <div class="col-map-row"><label>Scrip</label><select id="mapScrip"></select></div>
+            <div class="col-map-row"><label>Entry type</label><select id="mapType"></select></div>
+            <div class="col-map-row"><label>Bought at</label><select id="mapBuy"></select></div>
+            <div class="col-map-row"><label>Qty</label><select id="mapQty"></select></div>
+            <div class="col-map-row"><label>Sold at</label><select id="mapSell"></select></div>
+            <div class="col-map-row"><label>Sold on (date)</label><select id="mapDate"></select></div>
+            <div class="col-map-row"><label>Month</label><select id="mapMonth"></select></div>
+            <div class="col-map-row"><label>Capital (opt)</label><select id="mapCapital"></select></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-primary btn-sm" onclick="doImport()"><i class="ti ti-download"></i> Import trades</button>
+            <button class="btn btn-sm" onclick="resetImport()">Cancel</button>
+          </div>
+          <div id="importStatus" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRADE REVIEW PANEL ── -->
+  <div id="panelReview" class="panel">
+    <div class="a-grid">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:4px;">
+        <div>
+          <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.4px;">Trade Review</div>
+          <div style="font-size:14px;color:var(--muted);margin-top:4px;">Trades with P&amp;L &gt; +₹30,000 or &lt; −₹30,000</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div id="reviewStats" style="font-size:13px;color:var(--muted);"></div>
+          <select id="reviewMonthFilter" onchange="renderTradeReview()" style="font-size:13px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;cursor:pointer;outline:none;font-family:inherit;">
+            <option value="all">All months</option>
+          </select>
+          <select id="reviewFilter" onchange="renderTradeReview()" style="font-size:13px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;cursor:pointer;outline:none;font-family:inherit;">
+            <option value="all">All</option>
+            <option value="winners">Winners</option>
+            <option value="losers">Losers</option>
+          </select>
+          <select id="reviewReasonFilter" onchange="renderTradeReview()" style="font-size:13px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:6px 12px;cursor:pointer;outline:none;font-family:inherit;max-width:240px;">
+            <option value="all">All reasons</option>
+          </select>
+        </div>
+      </div>
+      <div id="reviewCumStat" style="display:none;margin-bottom:14px;padding:12px 18px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;gap:16px;flex-wrap:wrap;"></div>
+      <div id="reviewCards"></div>
+    </div>
+  </div>
+
+</main>
+
+</div><!-- end .layout -->
+
+<!-- Edit Modal -->
+<!-- Day Detail Modal -->
+<div class="modal-overlay" id="dayModal" onclick="closeDayModal(event)" style="display:none;">
+  <div class="modal-box" style="width:700px;max-width:95vw;max-height:85vh;overflow-y:auto;" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div id="dayModalDate" style="font-size:20px;font-weight:800;color:var(--text);"></div>
+        <div id="dayModalNetPnl" style="font-size:15px;font-weight:700;margin-top:3px;"></div>
+      </div>
+      <button onclick="closeDayModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:22px;line-height:1;padding:4px;">✕</button>
+    </div>
+
+    <!-- Summary strip -->
+    <div id="dayModalSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px;"></div>
+
+    <!-- Trade rows -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;display:grid;grid-template-columns:1fr 70px 90px 90px 90px 100px;gap:10px;padding:0 4px;">
+      <span>Scrip</span><span>Type</span><span style="text-align:right">Buy</span><span style="text-align:right">Sell</span><span style="text-align:right">Qty</span><span style="text-align:right">Net P&L</span>
+    </div>
+    <div id="dayModalTrades"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="ti ti-edit" style="margin-right:8px;font-size:16px;vertical-align:middle"></i>Edit trade</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-field"><label>Scrip name</label><input type="text" id="eScrip" style="text-transform:uppercase" /></div>
+      <div class="form-field"><label>Entry type</label>
+        <select id="eType"><option value="BTST">BTST</option><option value="INTRA">INTRA</option><option value="SWING">SWING</option></select>
+      </div>
+      <div class="form-field"><label>Bought at (₹)</label><input type="number" id="eBuy" oninput="recalcEdit()" /></div>
+      <div class="form-field"><label>Qty</label><input type="number" id="eQty" oninput="recalcEdit()" /></div>
+      <div class="form-field"><label>Invested (₹)</label><div class="computed" id="ecInvested">—</div></div>
+      <div class="form-field"><label>% on PF</label><div class="computed" id="ecPfPct">—</div></div>
+      <div class="form-field"><label>Sold at (₹)</label><input type="number" id="eSell" oninput="recalcEdit()" /></div>
+      <div class="form-field"><label>Sold on</label><input type="date" id="eDate" /></div>
+      <div class="form-field"><label>P&amp;L (₹)</label><div class="computed" id="ecPnl">—</div></div>
+      <div class="form-field"><label>P&amp;L %</label><div class="computed" id="ecPnlPct">—</div></div>
+      <div class="form-field"><label>Impact on PF-M</label><div class="computed" id="ecImpact">—</div></div>
+    </div>
+    <div class="form-actions" style="margin-top:20px">
+      <button class="btn btn-primary" onclick="saveEdit()"><i class="ti ti-check"></i> Save changes</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRIVE_MCP_URL = "https://drivemcp.googleapis.com/mcp/v1";
+const FILE_NAME = "trading_journal_og.json";
+
+let state = { months: {}, driveFileId: null, fyCapitals: {}, reviews: {} };
+const _now = new Date();
+let currentMonth = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][_now.getMonth()] + " " + _now.getFullYear();
+let capital = 0;
+
+function fmt(n) { return Number(n).toLocaleString('en-IN', { maximumFractionDigits: 2 }); }
+function fmtPct(n) { return Number(n).toFixed(2) + "%"; }
+
+async function callDrive(tool, input) {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6", max_tokens: 1000,
+        messages: [{ role: "user", content: JSON.stringify({ tool, input }) }],
+        mcp_servers: [{ type: "url", url: DRIVE_MCP_URL, name: "gdrive" }],
+        system: `You are a Google Drive file manager. Perform Drive operations using the gdrive MCP tool. Return ONLY a JSON object with keys: success (bool), fileId (string), content (string). No other text.`
+      })
+    });
+    const data = await res.json();
+    const toolResult = data.content?.find(b => b.type === "mcp_tool_result");
+    if (toolResult?.content?.[0]?.text) {
+      try { return JSON.parse(toolResult.content[0].text); } catch(e) { return { success: true, raw: toolResult.content[0].text }; }
+    }
+    const txt = data.content?.find(b => b.type === "text")?.text || "";
+    const match = txt.match(/\{[\s\S]*\}/);
+    if (match) { try { return JSON.parse(match[0]); } catch(e) {} }
+    return { success: false };
+  } catch(e) { return { success: false, error: e.message }; }
+}
+
+const LS_KEY = "rg_charts_journal";
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ months: state.months, driveFileId: state.driveFileId, fyCapitals: state.fyCapitals || {}, reviews: state.reviews || {} })); } catch(e) {} }
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const d = JSON.parse(raw); state.months = d.months || {}; state.driveFileId = d.driveFileId || null; state.fyCapitals = d.fyCapitals || {}; state.reviews = d.reviews || {}; return true; }
+  } catch(e) {}
+  return false;
+}
+
+async function initDrive() {
+  const hadLocal = loadLocal();
+  function syncFYFromCurrentMonth() {
+    const parts = currentMonth.split(" ");
+    const mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(parts[0]);
+    const year = parseInt(parts[1]);
+    const fyEndYear = (mi <= 2) ? year : year + 1;
+    document.getElementById("selFY").value = String(fyEndYear);
+    if (document.getElementById("fySelect")) document.getElementById("fySelect").value = String(fyEndYear);
+    if (document.getElementById("summaryFYSelect")) document.getElementById("summaryFYSelect").value = String(fyEndYear);
+    const savedCap = state.fyCapitals?.[fyEndYear] || "";
+    document.getElementById("fyCapital").value = savedCap || "";
+    updateFYStats();
+  }
+  if (hadLocal) { loadMonth(); syncFYFromCurrentMonth(); setDriveStatus("loading", "Syncing Drive…"); }
+  else { setDriveStatus("loading", "Searching Drive…"); }
+  const searchRes = await callDrive("search", { query: `name='${FILE_NAME}'` });
+  if (searchRes?.files?.length > 0) {
+    state.driveFileId = searchRes.files[0].id;
+    const readRes = await callDrive("read", { fileId: state.driveFileId });
+    if (readRes?.content) {
+      try {
+        const parsed = JSON.parse(readRes.content);
+        const driveMon = parsed.months || {};
+        Object.keys(driveMon).forEach(mk => { state.months[mk] = driveMon[mk]; });
+        const driveFyCaps = parsed.fyCapitals || {};
+        Object.keys(driveFyCaps).forEach(fy => { state.fyCapitals[fy] = driveFyCaps[fy]; });
+      } catch(e) {}
+    }
+    saveLocal(); setDriveStatus("connected", "Drive synced");
+  } else {
+    setDriveStatus("connected", hadLocal ? "Local cache loaded" : "Ready (new file)");
+  }
+  loadMonth(); syncFYFromCurrentMonth();
+}
+
+async function saveToDrive() {
+  saveLocal(); setStatus("saving", "Saving…");
+  const payload = JSON.stringify({ months: state.months, fyCapitals: state.fyCapitals || {} });
+  let res;
+  if (state.driveFileId) {
+    res = await callDrive("update", { fileId: state.driveFileId, content: payload, name: FILE_NAME });
+  } else {
+    res = await callDrive("create", { name: FILE_NAME, content: payload, mimeType: "application/json" });
+    if (res?.fileId) { state.driveFileId = res.fileId; saveLocal(); }
+  }
+  if (res?.success !== false) { setStatus("saved", "Saved ✓"); }
+  else { setStatus("error", "Drive unavailable — saved locally"); }
+  setTimeout(() => setStatus("", ""), 3500);
+}
+
+function setDriveStatus(type, label) {
+  const dot = document.getElementById("driveDot");
+  dot.className = "dot" + (type === "connected" ? " connected" : type === "loading" ? " loading" : "");
+  document.getElementById("driveLabel").textContent = label;
+}
+function setStatus(type, msg) {
+  const el = document.getElementById("saveStatus");
+  el.className = "status-msg " + type; el.textContent = msg;
+}
+
+function onMonthChange() {
+  const parts = currentMonth.split(" ");
+  const mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(parts[0]);
+  calNavDate = new Date(parseInt(parts[1]), mi, 1);
+  const year = parseInt(parts[1]);
+  const fyEndYear = (mi <= 2) ? year : year + 1;
+  const prevFY = document.getElementById("selFY").value;
+  document.getElementById("selFY").value = String(fyEndYear);
+  if (prevFY !== String(fyEndYear)) {
+    const savedCap = state.fyCapitals?.[fyEndYear] || "";
+    document.getElementById("fyCapital").value = savedCap || "";
+  }
+  loadMonth();
+  if (document.getElementById("panelAnalytics").classList.contains("active")) {
+    renderCalendar(); renderMonthCurve(); renderFYCurve();
+  }
+  updateFYStats();
+}
+
+function onFYChange() {
+  const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const savedCap = state.fyCapitals?.[fyEndYear] || "";
+  document.getElementById("fyCapital").value = savedCap || "";
+  updateFYStats();
+  if (document.getElementById("panelAnalytics").classList.contains("active")) renderFYCurve();
+}
+
+function onFYCapitalChange() {
+  const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const val = parseFloat(document.getElementById("fyCapital").value) || 0;
+  if (!state.fyCapitals) state.fyCapitals = {};
+  state.fyCapitals[fyEndYear] = val;
+  saveToDrive(); updateFYStats();
+}
+
+function getFYMonths(fyEndYear) {
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const fyMonths = [];
+  for (let m = 3; m < 12; m++) fyMonths.push(MONTHS[m] + " " + (fyEndYear - 1));
+  for (let m = 0; m < 3; m++) fyMonths.push(MONTHS[m] + " " + fyEndYear);
+  return fyMonths;
+}
+
+function updateFYStats() {
+  const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const fyMonths = getFYMonths(fyEndYear);
+  let fyTotalPnl = 0;
+  fyMonths.forEach(mk => { const m = state.months[mk]; if (!m) return; fyTotalPnl += (m.trades || []).reduce((s, t) => s + t.pnl, 0); });
+  const fyCap = state.fyCapitals?.[fyEndYear] || 0;
+  const inputEl = document.getElementById("fyCapital");
+  if (inputEl && parseFloat(inputEl.value) !== fyCap) inputEl.value = fyCap || "";
+  const fyPnlPct = fyCap ? (fyTotalPnl / fyCap) * 100 : 0;
+  const pnlEl = document.getElementById("fyPnl"), pctEl = document.getElementById("fyPnlPct");
+  pnlEl.textContent = fyTotalPnl !== 0 ? (fyTotalPnl >= 0 ? "+" : "") + "₹" + fmt(fyTotalPnl) : "—";
+  pnlEl.style.color = fyTotalPnl > 0 ? "var(--green)" : fyTotalPnl < 0 ? "var(--red)" : "var(--muted)";
+  pctEl.textContent = fyCap ? (fyPnlPct >= 0 ? "+" : "") + fyPnlPct.toFixed(2) + "%" : "—";
+  pctEl.style.color = fyPnlPct > 0 ? "var(--green)" : fyPnlPct < 0 ? "var(--red)" : "var(--muted)";
+}
+
+function onCapitalChange() {
+  capital = parseFloat(document.getElementById("monthCapital").value) || 0;
+  if (!state.months[currentMonth]) state.months[currentMonth] = { capital: 0, trades: [] };
+  state.months[currentMonth].capital = capital;
+  recalc(); updateMetrics();
+}
+
+function loadMonth() {
+  const m = state.months[currentMonth];
+  capital = m ? (m.capital || 0) : 0;
+  document.getElementById("monthCapital").value = capital || "";
+  document.getElementById("pageSubtitle").textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
+  renderTrades(); updateMetrics(); updateFYStats();
+}
+
+function recalc() {
+  const buy = parseFloat(document.getElementById("fBuy").value) || 0;
+  const qty = parseFloat(document.getElementById("fQty").value) || 0;
+  const sell = parseFloat(document.getElementById("fSell").value) || 0;
+  const invested = buy * qty, pnl = (sell - buy) * qty;
+  const pnlPct = invested ? (pnl / invested) * 100 : 0;
+  const pfPct = capital ? (invested / capital) * 100 : 0;
+  const impact = capital ? (pnl / capital) * 100 : 0;
+  const inv = document.getElementById("cInvested");
+  inv.textContent = invested ? "₹" + fmt(invested) : "—"; inv.className = "computed";
+  document.getElementById("cPfPct").textContent = pfPct ? fmtPct(pfPct) : "—";
+  const pnlEl = document.getElementById("cPnl");
+  if (sell && invested) { pnlEl.textContent = (pnl >= 0 ? "+" : "") + "₹" + fmt(pnl); pnlEl.className = "computed " + (pnl >= 0 ? "pos" : "neg"); }
+  else { pnlEl.textContent = "—"; pnlEl.className = "computed"; }
+  const pnlPctEl = document.getElementById("cPnlPct");
+  if (sell && invested) { pnlPctEl.textContent = fmtPct(pnlPct); pnlPctEl.className = "computed " + (pnlPct >= 0 ? "pos" : "neg"); }
+  else { pnlPctEl.textContent = "—"; pnlPctEl.className = "computed"; }
+  const impEl = document.getElementById("cImpact");
+  if (sell && capital) { impEl.textContent = fmtPct(impact); impEl.className = "computed " + (impact >= 0 ? "pos" : "neg"); }
+  else { impEl.textContent = "—"; impEl.className = "computed"; }
+}
+
+function addTrade() {
+  const scrip = document.getElementById("fScrip").value.trim().toUpperCase();
+  const type = document.getElementById("fType").value;
+  const buy = parseFloat(document.getElementById("fBuy").value);
+  const qty = parseFloat(document.getElementById("fQty").value);
+  const sell = parseFloat(document.getElementById("fSell").value);
+  const date = document.getElementById("fDate").value;
+  if (!scrip || !buy || !qty || !sell || !date) { setStatus("error", "Please fill all fields"); return; }
+  const invested = buy * qty, pnl = (sell - buy) * qty;
+  const trade = { id: Date.now(), scrip, type, buy, qty, sell, date, invested, pnl, capital };
+  if (!state.months[currentMonth]) state.months[currentMonth] = { capital, trades: [] };
+  state.months[currentMonth].capital = capital;
+  state.months[currentMonth].trades.push(trade);
+  ["fScrip","fBuy","fQty","fSell"].forEach(id => document.getElementById(id).value = "");
+  ["cInvested","cPfPct","cPnl","cPnlPct","cImpact"].forEach(id => { document.getElementById(id).textContent = "—"; document.getElementById(id).className = "computed"; });
+  renderTrades(); updateMetrics(); saveToDrive();
+}
+
+function deleteTrade(id) {
+  if (!state.months[currentMonth]) return;
+  state.months[currentMonth].trades = state.months[currentMonth].trades.filter(t => t.id !== id);
+  renderTrades(); updateMetrics(); saveToDrive();
+}
+
+// ── SORT & FILTER ──
+let sortCol = 'date', sortDir = 'desc';
+
+function toggleSort(col) {
+  if (sortCol === col) { sortDir = sortDir === 'asc' ? 'desc' : 'asc'; }
+  else { sortCol = col; sortDir = 'desc'; }
+  updateSortHeaders(); applyFiltersAndRender();
+}
+function updateSortHeaders() {
+  ['thDate','thPnl'].forEach(id => { const th = document.getElementById(id); if (th) th.classList.remove('sort-asc','sort-desc'); });
+  const colMap = { date: 'thDate', pnl: 'thPnl' };
+  const th = document.getElementById(colMap[sortCol]);
+  if (th) th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+}
+function getFilteredSortedTrades() {
+  const trades = state.months[currentMonth]?.trades || [];
+  const dateFrom = document.getElementById('filterDateFrom')?.value || '';
+  const dateTo   = document.getElementById('filterDateTo')?.value || '';
+  const pnlType  = document.getElementById('filterPnlType')?.value || 'all';
+  const pnlMin   = parseFloat(document.getElementById('filterPnlMin')?.value);
+  const pnlMax   = parseFloat(document.getElementById('filterPnlMax')?.value);
+  let filtered = trades.filter(t => {
+    if (dateFrom && t.date < dateFrom) return false;
+    if (dateTo   && t.date > dateTo)   return false;
+    if (pnlType === 'profit' && t.pnl <= 0) return false;
+    if (pnlType === 'loss'   && t.pnl >= 0) return false;
+    if (!isNaN(pnlMin) && t.pnl < pnlMin) return false;
+    if (!isNaN(pnlMax) && t.pnl > pnlMax) return false;
+    return true;
+  });
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (sortCol === 'date') { av = a.date || ''; bv = b.date || ''; }
+    else { av = a.pnl; bv = b.pnl; }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return filtered;
+}
+function updateFilterBadge() {
+  const dateFrom = document.getElementById('filterDateFrom')?.value || '';
+  const dateTo   = document.getElementById('filterDateTo')?.value || '';
+  const pnlType  = document.getElementById('filterPnlType')?.value || 'all';
+  const pnlMin   = document.getElementById('filterPnlMin')?.value || '';
+  const pnlMax   = document.getElementById('filterPnlMax')?.value || '';
+  const totalTrades = state.months[currentMonth]?.trades?.length || 0;
+  const shown = getFilteredSortedTrades().length;
+  const active = dateFrom || dateTo || pnlType !== 'all' || pnlMin || pnlMax;
+  const badge = document.getElementById('filterActiveBadge');
+  if (badge) { badge.textContent = active ? `${shown} / ${totalTrades}` : ''; badge.className = 'filter-active-badge' + (active ? ' show' : ''); }
+}
+function applyFiltersAndRender() { updateFilterBadge(); renderTrades(); }
+function clearFilters() {
+  document.getElementById('filterDateFrom').value = '';
+  document.getElementById('filterDateTo').value = '';
+  document.getElementById('filterPnlType').value = 'all';
+  document.getElementById('filterPnlMin').value = '';
+  document.getElementById('filterPnlMax').value = '';
+  applyFiltersAndRender();
+}
+
+function renderTrades() {
+  const trades = getFilteredSortedTrades();
+  const allTrades = state.months[currentMonth]?.trades || [];
+  const cap = capital || 1;
+  const tbody = document.getElementById("tradeBody");
+  if (!allTrades.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><i class="ti ti-chart-candle"></i><p>No trades this month. Add your first trade above.</p></td></tr>`;
+    return;
+  }
+  if (!trades.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><i class="ti ti-filter"></i><p>No trades match the current filter.</p><br><button class="btn btn-sm" onclick="clearFilters()" style="margin-top:6px">Clear filters</button></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = trades.map(t => {
+    const pfPct = (t.invested / cap) * 100;
+    const pnlPct = (t.pnl / t.invested) * 100;
+    const impact = (t.pnl / cap) * 100;
+    const cls = t.pnl >= 0 ? "pnl-pos" : "pnl-neg";
+    return `<tr>
+      <td style="font-weight:600;color:var(--text)">${t.scrip}</td>
+      <td><span class="tag tag-${t.type.toLowerCase()}">${t.type}</span></td>
+      <td>₹${fmt(t.buy)}</td>
+      <td>${t.qty}</td>
+      <td>₹${fmt(t.invested)}</td>
+      <td>${fmtPct(pfPct)}</td>
+      <td>₹${fmt(t.sell)}</td>
+      <td>${t.date}</td>
+      <td class="${cls}">${t.pnl >= 0 ? '+' : ''}₹${fmt(t.pnl)}</td>
+      <td class="${cls}">${fmtPct(pnlPct)}</td>
+      <td class="${cls}">${fmtPct(impact)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm btn-edit" onclick="openEditModal(${t.id})" title="Edit" style="margin-right:2px"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteTrade(${t.id})" title="Delete"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function updateMetrics() {
+  const trades = state.months[currentMonth]?.trades || [];
+  const cap = capital || 1;
+  const totalPnl = trades.reduce((s, t) => s + t.pnl, 0);
+  const wins = trades.filter(t => t.pnl > 0), losses = trades.filter(t => t.pnl < 0);
+  const winRate = trades.length ? (wins.length / trades.length) * 100 : 0;
+  const impact = (totalPnl / cap) * 100;
+  let runPnl = 0, peak = 0, maxDD = 0;
+  trades.forEach(t => { runPnl += t.pnl; if (runPnl > peak) peak = runPnl; const dd = peak - runPnl; if (dd > maxDD) maxDD = dd; });
+  const avg = trades.length ? totalPnl / trades.length : 0;
+
+  const pnlEl = document.getElementById("mPnl");
+  pnlEl.textContent = (totalPnl >= 0 ? "+" : "") + "₹" + fmt(totalPnl);
+  pnlEl.className = "metric-num " + (totalPnl > 0 ? "pos" : totalPnl < 0 ? "neg" : "mut");
+
+  const impEl = document.getElementById("mImpact");
+  impEl.textContent = fmtPct(impact);
+  impEl.className = "metric-num " + (impact > 0 ? "pos" : impact < 0 ? "neg" : "mut");
+
+  const winEl = document.getElementById("mWin");
+  winEl.textContent = trades.length ? winRate.toFixed(1) + "%" : "—";
+  winEl.className = "metric-num " + (winRate >= 50 ? "pos" : winRate > 0 ? "neg" : "mut");
+
+  document.getElementById("mTrades").textContent = trades.length;
+  document.getElementById("mTrades").className = "metric-num mut";
+
+  const ddEl = document.getElementById("mDD");
+  ddEl.textContent = "₹" + fmt(maxDD);
+  ddEl.className = "metric-num " + (maxDD > 0 ? "neg" : "mut");
+
+  const avgEl = document.getElementById("mAvg");
+  avgEl.textContent = (avg >= 0 ? "+" : "") + "₹" + fmt(avg);
+  avgEl.className = "metric-num " + (avg > 0 ? "pos" : avg < 0 ? "neg" : "mut");
+
+  document.getElementById("aBtst").textContent = trades.filter(t => t.type === "BTST").length;
+  document.getElementById("aIntra").textContent = trades.filter(t => t.type === "INTRA").length;
+  const best = trades.length ? Math.max(...trades.map(t => t.pnl)) : 0;
+  const worst = trades.length ? Math.min(...trades.map(t => t.pnl)) : 0;
+  document.getElementById("aBest").textContent = "+₹" + fmt(best);
+  document.getElementById("aWorst").textContent = "₹" + fmt(worst);
+  let cur = 0, maxStreak = 0;
+  trades.forEach(t => { if (t.pnl > 0) { cur++; if (cur > maxStreak) maxStreak = cur; } else cur = 0; });
+  document.getElementById("aStreak").textContent = maxStreak;
+  const grossWin = wins.reduce((s, t) => s + t.pnl, 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
+  document.getElementById("aPF").textContent = grossLoss ? (grossWin / grossLoss).toFixed(2) : grossWin > 0 ? "∞" : "—";
+
+  renderBars(trades);
+  if (document.getElementById("panelAnalytics").classList.contains("active")) renderCalendar();
+  document.getElementById("pageSubtitle").textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
+
+  const sharpeEl = document.getElementById("mSharpe");
+  if (trades.length >= 2) {
+    const pnls = trades.map(t => t.pnl);
+    const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length;
+    const std = Math.sqrt(pnls.map(v => (v - mean) ** 2).reduce((a, b) => a + b, 0) / pnls.length);
+    const sharpe = std ? (mean / std) * Math.sqrt(252) : 0;
+    sharpeEl.textContent = sharpe.toFixed(2);
+    sharpeEl.className = "metric-num " + (sharpe >= 1 ? "pos" : sharpe >= 0 ? "mut" : "neg");
+  } else { sharpeEl.textContent = "—"; sharpeEl.className = "metric-num mut"; }
+}
+
+function renderBars(trades) {
+  const barsEl = document.getElementById("pnlBars");
+  if (!trades.length) { barsEl.innerHTML = '<p style="color:var(--muted);font-size:13px">No trades to display.</p>'; return; }
+  const sorted = [...trades].sort((a, b) => b.pnl - a.pnl);
+  const winners = sorted.filter(t => t.pnl > 0).slice(0, 10);
+  const losers  = sorted.filter(t => t.pnl < 0).slice(-10).reverse();
+  const maxWin  = winners.length ? Math.max(...winners.map(t => t.pnl)) : 1;
+  const maxLoss = losers.length  ? Math.max(...losers.map(t => Math.abs(t.pnl))) : 1;
+
+  const makeRows = (list, maxAbs, color) => list.map(t => {
+    const pct = maxAbs ? (Math.abs(t.pnl) / maxAbs) * 100 : 0;
+    return `<div class="bar-row">
+      <div class="bar-label">${t.scrip}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div></div>
+      <div class="bar-val" style="color:${color}">${t.pnl >= 0 ? "+" : ""}₹${fmt(t.pnl)}</div>
+    </div>`;
+  }).join("");
+
+  barsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">▲ Top Winners</div>
+        ${winners.length ? makeRows(winners, maxWin, "var(--green)") : '<p style="color:var(--muted);font-size:13px">No winners</p>'}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;">▼ Top Losers</div>
+        ${losers.length ? makeRows(losers, maxLoss, "var(--red)") : '<p style="color:var(--muted);font-size:13px">No losers</p>'}
+      </div>
+    </div>`;
+}
+
+function renderWeeklyPnl() {
+  const trades = state.months[currentMonth]?.trades || [];
+  const grid = document.getElementById("weeklyPnlGrid");
+  const label = document.getElementById("weeklyMonthLabel");
+  if (label) label.textContent = currentMonth;
+  if (!trades.length) {
+    grid.innerHTML = `<p style="color:var(--muted);font-size:13px;padding:8px 0">No trades this month.</p>`;
+    return;
+  }
+
+  // Get month bounds
+  const parts = currentMonth.split(" ");
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const mi = MONTHS.indexOf(parts[0]);
+  const yr = parseInt(parts[1]);
+  const firstOfMonth = new Date(yr, mi, 1);
+  const lastOfMonth  = new Date(yr, mi + 1, 0);
+
+  // Build weeks: Mon–Sun buckets covering the month
+  const weeks = [];
+  // Find the Monday on or before the 1st
+  let weekStart = new Date(firstOfMonth);
+  const dow = weekStart.getDay(); // 0=Sun
+  weekStart.setDate(weekStart.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  let weekNum = 1;
+  while (weekStart <= lastOfMonth) {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weeks.push({ num: weekNum++, start: new Date(weekStart), end: new Date(weekEnd), trades: [] });
+    weekStart.setDate(weekStart.getDate() + 7);
+  }
+
+  // Bucket trades into weeks
+  trades.forEach(t => {
+    if (!t.date) return;
+    const td = new Date(t.date);
+    const w = weeks.find(w => td >= w.start && td <= w.end);
+    if (w) w.trades.push(t);
+  });
+
+  const fmt2 = d => (d.getDate()).toString().padStart(2,"0") + " " + MONTHS[d.getMonth()];
+
+  grid.innerHTML = weeks.map(w => {
+    const pnl = w.trades.reduce((s, t) => s + t.pnl, 0);
+    const tradeDays = [...new Set(w.trades.map(t => t.date))].length;
+    const wins = w.trades.filter(t => t.pnl > 0).length;
+    const wr = w.trades.length ? Math.round(wins / w.trades.length * 100) : null;
+    const cls = pnl > 0 ? "wc-profit" : pnl < 0 ? "wc-loss" : "";
+    const pnlCls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "zero";
+    const pnlStr = pnl === 0 ? "₹0" : (pnl > 0 ? "+" : "") + "₹" + (Math.abs(pnl) >= 100000 ? (pnl/100000).toFixed(2)+"L" : Math.abs(pnl) >= 1000 ? (pnl/1000).toFixed(2)+"K" : pnl.toFixed(0));
+    const wrBadge = wr !== null ? `<span class="week-badge ${wr >= 50 ? 'wr-good':'wr-bad'}">${wr}% WR</span>` : '';
+    const tradesBadge = w.trades.length ? `<span class="week-badge trades">${w.trades.length} trade${w.trades.length>1?'s':''}</span>` : '';
+    const daysBadge = `<span class="week-badge days">${tradeDays} day${tradeDays !== 1 ? 's' : ''}</span>`;
+    return `<div class="week-card ${cls}">
+      <div class="week-label">Week ${w.num}</div>
+      <div class="week-dates">${fmt2(w.start)} – ${fmt2(w.end)}</div>
+      <div class="week-pnl ${pnlCls}">${pnlStr}</div>
+      <div class="week-meta">${daysBadge}${tradesBadge}${wrBadge}</div>
+    </div>`;
+  }).join("");
+}
+
+function showTab(tab, el) {
+  document.querySelectorAll(".sidebar-tab, .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  const panelEl = document.getElementById("panel" + tab.charAt(0).toUpperCase() + tab.slice(1));
+  if (panelEl) panelEl.classList.add("active");
+  document.querySelectorAll(`[onclick*="'${tab}'"]`).forEach(el => el.classList.add("active"));
+}
+
+function exportCSV() {
+  const trades = state.months[currentMonth]?.trades || [];
+  const cap = capital || 1;
+  const rows = [["Month","Scrip","Type","Bought at","Qty","Invested","% on PF","Sold at","Sold on","P&L","P&L%","PF Impact%"]];
+  trades.forEach(t => { rows.push([currentMonth, t.scrip, t.type, t.buy, t.qty, t.invested.toFixed(2), ((t.invested/cap)*100).toFixed(2), t.sell, t.date, t.pnl.toFixed(2), ((t.pnl/t.invested)*100).toFixed(2), ((t.pnl/cap)*100).toFixed(2)]); });
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const a = document.createElement("a"); a.href = "data:text/csv," + encodeURIComponent(csv); a.download = `journal_${currentMonth.replace(" ","_")}.csv`; a.click();
+}
+
+let editingId = null;
+function openEditModal(id) {
+  const trades = state.months[currentMonth]?.trades || [];
+  const t = trades.find(x => x.id === id); if (!t) return;
+  editingId = id;
+  document.getElementById("eScrip").value = t.scrip;
+  document.getElementById("eType").value = t.type;
+  document.getElementById("eBuy").value = t.buy;
+  document.getElementById("eQty").value = t.qty;
+  document.getElementById("eSell").value = t.sell;
+  document.getElementById("eDate").value = t.date;
+  recalcEdit(); document.getElementById("editModal").classList.add("open");
+}
+function closeModal() { document.getElementById("editModal").classList.remove("open"); editingId = null; }
+function closeEditModal(e) { if (e.target === document.getElementById("editModal")) closeModal(); }
+function recalcEdit() {
+  const buy = parseFloat(document.getElementById("eBuy").value) || 0;
+  const qty = parseFloat(document.getElementById("eQty").value) || 0;
+  const sell = parseFloat(document.getElementById("eSell").value) || 0;
+  const invested = buy * qty, pnl = (sell - buy) * qty;
+  const pnlPct = invested ? (pnl / invested) * 100 : 0;
+  const pfPct = capital ? (invested / capital) * 100 : 0;
+  const impact = capital ? (pnl / capital) * 100 : 0;
+  document.getElementById("ecInvested").textContent = invested ? "₹" + fmt(invested) : "—";
+  document.getElementById("ecPfPct").textContent = pfPct ? fmtPct(pfPct) : "—";
+  const pnlEl = document.getElementById("ecPnl");
+  if (sell && invested) { pnlEl.textContent = (pnl >= 0 ? "+" : "") + "₹" + fmt(pnl); pnlEl.className = "computed " + (pnl >= 0 ? "pos" : "neg"); } else { pnlEl.textContent = "—"; pnlEl.className = "computed"; }
+  const pnlPctEl = document.getElementById("ecPnlPct");
+  if (sell && invested) { pnlPctEl.textContent = fmtPct(pnlPct); pnlPctEl.className = "computed " + (pnlPct >= 0 ? "pos" : "neg"); } else { pnlPctEl.textContent = "—"; pnlPctEl.className = "computed"; }
+  const impEl = document.getElementById("ecImpact");
+  if (sell && capital) { impEl.textContent = fmtPct(impact); impEl.className = "computed " + (impact >= 0 ? "pos" : "neg"); } else { impEl.textContent = "—"; impEl.className = "computed"; }
+}
+function saveEdit() {
+  if (!editingId) return;
+  const scrip = document.getElementById("eScrip").value.trim().toUpperCase();
+  const type = document.getElementById("eType").value;
+  const buy = parseFloat(document.getElementById("eBuy").value);
+  const qty = parseFloat(document.getElementById("eQty").value);
+  const sell = parseFloat(document.getElementById("eSell").value);
+  const date = document.getElementById("eDate").value;
+  if (!scrip || !buy || !qty || !sell || !date) { alert("Please fill all fields"); return; }
+  const invested = buy * qty, pnl = (sell - buy) * qty;
+  const trades = state.months[currentMonth]?.trades || [];
+  const idx = trades.findIndex(x => x.id === editingId); if (idx === -1) return;
+  trades[idx] = { ...trades[idx], scrip, type, buy, qty, sell, date, invested, pnl, capital };
+  closeModal(); renderTrades(); updateMetrics(); saveToDrive();
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// ── ANALYTICS ──
+let calNavDate = null;
+function getCalMonth() {
+  if (!calNavDate) {
+    const parts = currentMonth.split(" ");
+    const mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(parts[0]);
+    calNavDate = new Date(parseInt(parts[1]), mi, 1);
+  }
+  return calNavDate;
+}
+
+const MP_MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+let mpYear = 2026, mpYearOffset = 0;
+
+function toggleMonthPicker() {
+  const drop = document.getElementById("monthPickerDrop");
+  const open = drop.style.display !== "none";
+  if (open) { drop.style.display = "none"; return; }
+  const parts = currentMonth.split(" "); mpYear = parseInt(parts[1]);
+  showMonthView(); drop.style.display = "block";
+}
+function showMonthView() {
+  document.getElementById("mpMonthView").style.display = "block";
+  document.getElementById("mpYearView").style.display = "none";
+  document.getElementById("mpYearBtn").textContent = mpYear + " ↩";
+  const selParts = currentMonth.split(" "), selMon = selParts[0], selYr = parseInt(selParts[1]);
+  const grid = document.getElementById("mpMonthGrid");
+  grid.innerHTML = MP_MONTHS.map(m => {
+    const isSelected = m === selMon && mpYear === selYr;
+    return `<button onclick="mpSelectMonth('${m}')"
+      style="padding:7px 4px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+      background:${isSelected ? "var(--accent)" : "var(--surface2)"};
+      color:${isSelected ? "#fff" : "var(--text2)"};transition:background 0.12s;"
+      onmouseover="if(!this.style.background.includes('accent'))this.style.background='var(--surface3)'"
+      onmouseout="if(!this.style.background.includes('accent'))this.style.background='var(--surface2)'"
+    >${m}</button>`;
+  }).join("");
+}
+function showYearView() {
+  document.getElementById("mpMonthView").style.display = "none";
+  document.getElementById("mpYearView").style.display = "block";
+  renderYearGrid();
+}
+function renderYearGrid() {
+  const baseYear = 2021, startYear = baseYear + mpYearOffset;
+  const selYr = parseInt(currentMonth.split(" ")[1]);
+  const grid = document.getElementById("mpYearGrid");
+  grid.innerHTML = Array.from({length:12}, (_,i) => startYear + i).map(y => {
+    const isSelected = y === selYr;
+    return `<button onclick="mpSelectYear(${y})"
+      style="padding:7px 4px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
+      background:${isSelected ? "var(--accent)" : "var(--surface2)"};
+      color:${isSelected ? "#fff" : "var(--text2)"};transition:background 0.12s;"
+      onmouseover="if(!this.style.background.includes('accent'))this.style.background='var(--surface3)'"
+      onmouseout="if(!this.style.background.includes('accent'))this.style.background='var(--surface2)'"
+    >${y}</button>`;
+  }).join("");
+}
+function mpYearScroll(delta) { mpYearOffset += delta; renderYearGrid(); }
+function mpYearStep(delta) { mpYear += delta; showMonthView(); }
+function mpSelectYear(y) { mpYear = y; showMonthView(); }
+function mpSelectMonth(mon) {
+  const newMonth = mon + " " + mpYear;
+  document.getElementById("monthPickerLabel").textContent = newMonth;
+  document.getElementById("monthPickerDrop").style.display = "none";
+  currentMonth = newMonth; onMonthChange();
+}
+document.addEventListener("click", e => {
+  const drop = document.getElementById("monthPickerDrop");
+  const display = document.getElementById("monthPickerDisplay");
+  if (drop && !drop.contains(e.target) && !display.contains(e.target)) drop.style.display = "none";
+});
+
+function calPrev() {
+  const d = getCalMonth();
+  calNavDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  const newMonth = MP_MONTHS[calNavDate.getMonth()] + " " + calNavDate.getFullYear();
+  currentMonth = newMonth; document.getElementById("monthPickerLabel").textContent = newMonth; mpYear = calNavDate.getFullYear();
+  const mi = calNavDate.getMonth(), year = calNavDate.getFullYear();
+  const fyEndYear = (mi <= 2) ? year : year + 1;
+  const prevFY = document.getElementById("selFY").value;
+  document.getElementById("selFY").value = String(fyEndYear);
+  if (prevFY !== String(fyEndYear)) { document.getElementById("fyCapital").value = state.fyCapitals?.[fyEndYear] || ""; }
+  loadMonth(); renderCalendar(); renderMonthCurve(); updateFYStats();
+}
+function calNext() {
+  const d = getCalMonth();
+  calNavDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  const newMonth = MP_MONTHS[calNavDate.getMonth()] + " " + calNavDate.getFullYear();
+  currentMonth = newMonth; document.getElementById("monthPickerLabel").textContent = newMonth; mpYear = calNavDate.getFullYear();
+  const mi = calNavDate.getMonth(), year = calNavDate.getFullYear();
+  const fyEndYear = (mi <= 2) ? year : year + 1;
+  const prevFY = document.getElementById("selFY").value;
+  document.getElementById("selFY").value = String(fyEndYear);
+  if (prevFY !== String(fyEndYear)) { document.getElementById("fyCapital").value = state.fyCapitals?.[fyEndYear] || ""; }
+  loadMonth(); renderCalendar(); renderMonthCurve(); updateFYStats();
+}
+
+function renderCalendar() {
+  const d = getCalMonth();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const mk = MONTHS[d.getMonth()] + " " + d.getFullYear();
+  document.getElementById("calNavLabel").textContent = mk;
+  const trades = Object.values(state.months).flatMap(m => m.trades || []);
+  const dayMap = {};
+  trades.forEach(t => {
+    if (!t.date) return;
+    const td = new Date(t.date);
+    if (td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth()) {
+      dayMap[t.date] = (dayMap[t.date] || 0) + t.pnl;
+    }
+  });
+  const year = d.getFullYear(), month = d.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = new Date().toISOString().split("T")[0];
+  const fmtPnl = v => Math.round(v).toString();
+  let html = "";
+  // Leading empty cells before the 1st
+  for (let i = 0; i < firstDay; i++) html += '<div class="c-cell empty"></div>';
+  let weekPnl = 0;
+  let cellCount = firstDay; // track position in row (0=Su ... 6=Sa)
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    const pnl = dayMap[ds];
+    let cls = "no-trade", pnlHtml = "";
+    if (pnl !== undefined) {
+      cls = pnl >= 0 ? "win" : "loss";
+      weekPnl += pnl;
+      pnlHtml = '<div class="c-pnl">' + (pnl >= 0 ? "+" : "") + fmtPnl(pnl) + '</div>';
+    }
+    const todayCls = ds === todayStr ? " today" : "";
+    const clickable = pnl !== undefined ? ` onclick="openDayModal('${ds}')" style="cursor:pointer;"` : "";
+    html += '<div class="c-cell ' + cls + todayCls + '"' + clickable + '><div class="c-day">' + day + '</div>' + pnlHtml + '</div>';
+    cellCount++;
+    const dayOfWeek = new Date(year, month, day).getDay();
+    // After Saturday (6) or last day of month → insert weekly P&L cell
+    const isLastDay = day === daysInMonth;
+    if (dayOfWeek === 6 || isLastDay) {
+      // If last week is partial (didn't end on Saturday), pad empty cells to push week col to column 8
+      if (isLastDay && dayOfWeek !== 6) {
+        const emptiesNeeded = 6 - dayOfWeek;
+        for (let e = 0; e < emptiesNeeded; e++) html += '<div class="c-cell empty"></div>';
+      }
+      const wCls = weekPnl > 0 ? "week-win" : weekPnl < 0 ? "week-loss" : "";
+      const wSign = weekPnl >= 0 ? "+" : "";
+      const wPnlHtml = weekPnl !== 0 ? '<div class="c-pnl">' + wSign + fmtPnl(weekPnl) + '</div>' : '';
+      html += '<div class="c-cell week-pnl-cell ' + wCls + '">' + wPnlHtml + '</div>';
+      weekPnl = 0;
+      cellCount++;
+    }
+  }
+  document.getElementById("calDaysGrid").innerHTML = html;
+}
+
+let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null;
+
+function buildEquityCfg(labels, pnlData, height) {
+  const lastVal = pnlData[pnlData.length - 1] || 0;
+  const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
+  return {
+    type: "line", data: { labels, datasets: [{
+      label: "Equity", data: pnlData, borderColor: lineColor, borderWidth: 2,
+      pointRadius: pnlData.length > 30 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: lineColor,
+      fill: true,
+      backgroundColor: (ctx) => {
+        const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, height || 160);
+        g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.20)" : "rgba(239,68,68,0.16)");
+        g.addColorStop(1, "rgba(0,0,0,0)"); return g;
+      },
+      tension: 0.35
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
+          titleColor: "#6b7280", bodyColor: "#f0f2f5", titleFont: { size: 10 }, bodyFont: { size: 12, weight: "600" },
+          callbacks: { label: c => " ₹" + (c.raw >= 0 ? "+" : "") + Math.abs(c.raw).toLocaleString("en-IN", { maximumFractionDigits: 0 }) }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
+        y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => "₹" + (Math.abs(v) >= 100000 ? (v/100000).toFixed(1)+"L" : Math.abs(v) >= 1000 ? (v/1000).toFixed(0)+"K" : v.toFixed(0)) }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } }
+      }
+    }
+  };
+}
+
+function buildDDCfg(labels, ddData, height) {
+  return {
+    type: "line", data: { labels, datasets: [{
+      label: "Drawdown", data: ddData.map(v => -v),
+      borderColor: "#ef4444", borderWidth: 2,
+      pointRadius: ddData.length > 30 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: "#ef4444",
+      fill: true,
+      backgroundColor: (ctx) => {
+        const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, height || 160);
+        g.addColorStop(0, "rgba(239,68,68,0.22)");
+        g.addColorStop(1, "rgba(239,68,68,0.03)"); return g;
+      },
+      tension: 0.35
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
+          titleColor: "#6b7280", bodyColor: "#ef4444", titleFont: { size: 10 }, bodyFont: { size: 12, weight: "600" },
+          callbacks: { label: c => " DD: ₹" + Math.abs(c.raw).toLocaleString("en-IN", { maximumFractionDigits: 0 }) }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
+        y: { ticks: { color: "#ef444488", font: { size: 9 }, callback: v => { const a=Math.abs(v); return "₹"+(a>=100000?(a/100000).toFixed(1)+"L":a>=1000?(a/1000).toFixed(0)+"K":a.toFixed(0)); } }, grid: { color: "rgba(239,68,68,0.06)" }, border: { display: false } }
+      }
+    }
+  };
+}
+
+function calcEquityAndDD(trades) {
+  const sorted = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let run = 0, peak = 0;
+  const labels = ["Start"], equity = [0], dd = [0];
+  sorted.forEach(t => {
+    run += t.pnl; if (run > peak) peak = run; const d = peak - run;
+    labels.push(t.date?.slice(5) || t.scrip); equity.push(parseFloat(run.toFixed(2))); dd.push(parseFloat(d.toFixed(2)));
+  });
+  return { labels, equity, dd };
+}
+
+function renderMonthCurve() {
+  const trades = state.months[currentMonth]?.trades || [];
+  const { labels, equity, dd } = calcEquityAndDD(trades);
+  const ctx = document.getElementById("chartMonth")?.getContext("2d"); if (!ctx) return;
+  if (chartMonthInst) chartMonthInst.destroy();
+  // Month chart keeps combined view (equity + DD overlay)
+  const lastVal = equity[equity.length - 1] || 0;
+  const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
+  const datasets = [{
+    label: "Equity", data: equity, borderColor: lineColor, borderWidth: 2,
+    pointRadius: equity.length > 30 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: lineColor,
+    fill: true,
+    backgroundColor: (ctx2) => {
+      const g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 160);
+      g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.18)" : "rgba(239,68,68,0.15)");
+      g.addColorStop(1, "rgba(0,0,0,0)"); return g;
+    }, tension: 0.35, yAxisID: "y"
+  }];
+  if (dd.some(v => v > 0)) {
+    datasets.push({ label: "Drawdown", data: dd.map(v => -v), borderColor: "rgba(239,68,68,0.5)", borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: "rgba(239,68,68,0.07)", tension: 0.35, yAxisID: "y2" });
+  }
+  chartMonthInst = new Chart(ctx, {
+    type: "line", data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: datasets.length > 1, labels: { color: "#6b7280", font: { size: 10 }, boxWidth: 12, padding: 12 } },
+        tooltip: { backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1, titleColor: "#6b7280", bodyColor: "#f0f2f5", titleFont: { size: 10 }, bodyFont: { size: 12, weight: "600" } }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
+        y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => "₹"+(Math.abs(v)>=100000?(v/100000).toFixed(1)+"L":Math.abs(v)>=1000?(v/1000).toFixed(0)+"K":v.toFixed(0)) }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } },
+        ...(datasets.length > 1 ? { y2: { position: "right", ticks: { color: "rgba(239,68,68,0.5)", font: { size: 9 }, callback: v => { const a=Math.abs(v); return "₹"+(a>=100000?(a/100000).toFixed(1)+"L":a>=1000?(a/1000).toFixed(0)+"K":a.toFixed(0)); } }, grid: { display: false }, border: { display: false } } } : {})
+      }
+    }
+  });
+}
+
+function renderFYCurves() {
+  const fyEndYear = parseInt(document.getElementById("fySelect")?.value || document.getElementById("selFY")?.value || 2026);
+  const fyMonths = getFYMonths(fyEndYear);
+  const allTrades = fyMonths.flatMap(mk => (state.months[mk]?.trades || []));
+  const { labels, equity, dd } = calcEquityAndDD(allTrades);
+
+  // Equity chart
+  const ctx = document.getElementById("chartFY")?.getContext("2d"); if (!ctx) return;
+  if (chartFYInst) chartFYInst.destroy();
+  chartFYInst = new Chart(ctx, buildEquityCfg(labels, equity, 200));
+
+  // Drawdown chart
+  const ctx2 = document.getElementById("chartFYDD")?.getContext("2d"); if (!ctx2) return;
+  if (chartFYDDInst) chartFYDDInst.destroy();
+  chartFYDDInst = new Chart(ctx2, buildDDCfg(labels, dd, 200));
+
+  // Max DD badge
+  const maxDD = Math.max(...dd, 0);
+  const ddEl = document.getElementById("fyDDMax");
+  if (ddEl) ddEl.textContent = maxDD > 0 ? "Max DD: ₹" + maxDD.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "";
+}
+
+// alias for old calls
+function renderFYCurve() { renderFYCurves(); }
+
+// ── EXCEL IMPORT ──
+let importRows = [], importHeaders = [];
+function onDragOver(e) { e.preventDefault(); document.getElementById("dropZone").classList.add("drag-over"); }
+function onDragLeave(e) { document.getElementById("dropZone").classList.remove("drag-over"); }
+function onDrop(e) { e.preventDefault(); document.getElementById("dropZone").classList.remove("drag-over"); const f = e.dataTransfer.files[0]; if (f) parseXLSX(f); }
+function onFileSelect(e) { const f = e.target.files[0]; if (f) parseXLSX(f); }
+function parseXLSX(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: "array", cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: "yyyy-mm-dd" });
+      if (!data || data.length < 2) { alert("File appears empty or unreadable."); return; }
+      importHeaders = data[0].map(h => String(h || "").trim());
+      importRows = data.slice(1).filter(r => r.some(c => c));
+      showImportPreview();
+    } catch(err) { alert("Could not read file: " + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function showImportPreview() {
+  const wrap = document.getElementById("importPreviewWrap");
+  let html = '<table><tr>' + importHeaders.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+  importRows.slice(0, 4).forEach(r => { html += '<tr>' + importHeaders.map((_, i) => '<td>' + (r[i] || "") + '</td>').join('') + '</tr>'; });
+  html += '</table>';
+  wrap.innerHTML = html; wrap.style.display = "block";
+  const opts = ['<option value="">— skip —</option>' + importHeaders.map((h, i) => '<option value="' + i + '">' + h + '</option>').join('')];
+  const selIds = ["mapScrip","mapType","mapBuy","mapQty","mapSell","mapDate","mapMonth","mapCapital"];
+  const autoMap = { mapScrip:["scrip","symbol","stock","name"], mapType:["type","entry","strategy"], mapBuy:["bought","buy","entry price","purchase","price"], mapQty:["qty","quantity","shares","lot"], mapSell:["sold","sell","exit","exit price"], mapDate:["sold on","date","exit date","sell date","trade date"], mapMonth:["month"], mapCapital:["capital","month capital"] };
+  selIds.forEach(id => { const el = document.getElementById(id); el.innerHTML = opts[0]; const keywords = autoMap[id] || []; importHeaders.forEach((h, i) => { if (keywords.some(k => h.toLowerCase().includes(k))) el.value = String(i); }); });
+  document.getElementById("colMapWrap").style.display = "block";
+}
+function resetImport() { importRows = []; importHeaders = []; document.getElementById("importPreviewWrap").style.display = "none"; document.getElementById("colMapWrap").style.display = "none"; document.getElementById("xlsxFile").value = ""; document.getElementById("importStatus").textContent = ""; }
+function getColVal(row, selId) { const idx = document.getElementById(selId).value; return idx !== "" ? String(row[parseInt(idx)] || "").trim() : ""; }
+function doImport() {
+  const MONTHS_ARR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let added = 0, skipped = 0;
+  importRows.forEach((row) => {
+    const scrip = (getColVal(row, "mapScrip") || "").toUpperCase();
+    const type = (getColVal(row, "mapType") || "BTST").toUpperCase().includes("INTRA") ? "INTRA" : "BTST";
+    const buy = parseFloat(getColVal(row, "mapBuy")) || 0;
+    const qty = parseFloat(getColVal(row, "mapQty")) || 0;
+    const sell = parseFloat(getColVal(row, "mapSell")) || 0;
+    let dateStr = getColVal(row, "mapDate"), monthKey = getColVal(row, "mapMonth");
+    const capRaw = getColVal(row, "mapCapital");
+    if (!scrip || !buy || !qty || !sell) { skipped++; return; }
+    if (dateStr) { const d = new Date(dateStr); if (!isNaN(d)) { dateStr = d.toISOString().split("T")[0]; if (!monthKey && !isNaN(d)) monthKey = MONTHS_ARR[d.getMonth()] + " " + d.getFullYear(); } }
+    if (!monthKey) monthKey = currentMonth;
+    if (!/^[A-Za-z]{3} \d{4}$/.test(monthKey)) { const m = monthKey.match(/(\d{1,2})[\/\-](\d{4})/); if (m) monthKey = MONTHS_ARR[parseInt(m[1]) - 1] + " " + m[2]; else monthKey = currentMonth; }
+    const invested = buy * qty, pnl = (sell - buy) * qty;
+    const cap = capRaw ? parseFloat(capRaw) : 0;
+    if (!state.months[monthKey]) state.months[monthKey] = { capital: cap || 0, trades: [] };
+    if (cap && !state.months[monthKey].capital) state.months[monthKey].capital = cap;
+    state.months[monthKey].trades.push({ id: Date.now() + Math.random(), scrip, type, buy, qty, sell, date: dateStr || "", invested, pnl, capital: state.months[monthKey].capital });
+    added++;
+  });
+  document.getElementById("importStatus").innerHTML = '<span style="color:var(--green)">✓ ' + added + ' trades imported</span>' + (skipped ? ' <span style="color:var(--muted)">· ' + skipped + ' rows skipped</span>' : '');
+  loadMonth(); renderCalendar(); renderMonthCurve(); renderFYCurve(); saveToDrive();
+}
+
+function onAnalyticsOpen() {
+  const parts = currentMonth.split(" ");
+  const mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(parts[0]);
+  calNavDate = new Date(parseInt(parts[1]), mi, 1);
+  const fyVal = document.getElementById("selFY")?.value || "2026";
+  if (document.getElementById("fySelect")) document.getElementById("fySelect").value = fyVal;
+  updateFYStats(); renderCalendar();
+  setTimeout(() => { renderMonthCurve(); renderFYCurves(); }, 50);
+}
+
+// ── THEME ──
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light-mode");
+  document.getElementById("themeIcon").className = isLight ? "ti ti-sun" : "ti ti-moon";
+  document.getElementById("themeLabel").textContent = isLight ? "Dark" : "Light";
+  try { localStorage.setItem("rg_theme", isLight ? "light" : "dark"); } catch(e) {}
+}
+(function initTheme() {
+  try {
+    if (localStorage.getItem("rg_theme") === "light") {
+      document.body.classList.add("light-mode");
+      document.getElementById("themeIcon").className = "ti ti-sun";
+      document.getElementById("themeLabel").textContent = "Dark";
+    }
+  } catch(e) {}
+})();
+
+// ── SUMMARY ──
+function onSummaryOpen() {
+  const fyVal = document.getElementById("selFY")?.value || "2026";
+  document.getElementById("summaryFYSelect").value = fyVal;
+  renderSummary();
+}
+function onSummaryFYChange() { renderSummary(); }
+function renderSummary() {
+  const fyEndYear = parseInt(document.getElementById("summaryFYSelect").value || 2026);
+  const fyLabel = "FY " + (fyEndYear - 1) + "-" + String(fyEndYear).slice(2);
+  document.getElementById("summaryFYLabel").textContent = fyLabel;
+  const fyMonths = getFYMonths(fyEndYear), fyCap = state.fyCapitals?.[fyEndYear] || 0;
+  let cumPnl = 0, totalTrades = 0, totalWins = 0, totalPnl = 0;
+  let bestMonth = null, worstMonth = null;
+  const monthRows = fyMonths.map(mk => {
+    const m = state.months[mk], trades = m?.trades || [], cap = m?.capital || fyCap || 0;
+    const pnl = trades.reduce((s, t) => s + t.pnl, 0);
+    const wins = trades.filter(t => t.pnl > 0).length, losses = trades.filter(t => t.pnl < 0).length;
+    const winPct = trades.length ? (wins / trades.length) * 100 : null;
+    const best = trades.length ? Math.max(...trades.map(t => t.pnl)) : null;
+    const worst = trades.length ? Math.min(...trades.map(t => t.pnl)) : null;
+    const pnlPct = cap ? (pnl / cap) * 100 : null;
+    cumPnl += pnl; totalTrades += trades.length; totalWins += wins; totalPnl += pnl;
+    if (trades.length && (bestMonth === null || pnl > bestMonth.pnl)) bestMonth = { mk, pnl };
+    if (trades.length && (worstMonth === null || pnl < worstMonth.pnl)) worstMonth = { mk, pnl };
+    return { mk, trades, cap, pnl, wins, losses, winPct, best, worst, pnlPct, cumPnl };
+  });
+  const fyWinPct = totalTrades ? (totalWins / totalTrades) * 100 : 0;
+  const fyCumPnl = totalPnl, fyPnlPct = fyCap ? (fyCumPnl / fyCap) * 100 : 0;
+  const profitMonths = monthRows.filter(r => r.pnl > 0).length;
+  document.getElementById("summaryFYStats").innerHTML = `
+    <div class="fy-hm-stat"><div class="fy-hm-stat-label">FY P&L</div><div class="fy-hm-stat-val ${fyCumPnl > 0 ? 'pos' : fyCumPnl < 0 ? 'neg' : ''}">${fyCumPnl >= 0 ? '+' : ''}₹${fmt(fyCumPnl)}</div><div class="fy-hm-stat-sub">${fyPnlPct ? (fyPnlPct >= 0 ? '+' : '') + fyPnlPct.toFixed(2) + '% on capital' : 'No capital set'}</div></div>
+    <div class="fy-hm-stat"><div class="fy-hm-stat-label">Total trades</div><div class="fy-hm-stat-val">${totalTrades}</div><div class="fy-hm-stat-sub">Win rate ${fyWinPct.toFixed(1)}%</div></div>
+    <div class="fy-hm-stat"><div class="fy-hm-stat-label">Profit months</div><div class="fy-hm-stat-val pos">${profitMonths}</div><div class="fy-hm-stat-sub">of ${monthRows.filter(r => r.trades.length > 0).length} active</div></div>
+    <div class="fy-hm-stat"><div class="fy-hm-stat-label">Best month</div><div class="fy-hm-stat-val pos">${bestMonth ? '+₹' + fmt(bestMonth.pnl) : '—'}</div><div class="fy-hm-stat-sub">${bestMonth?.mk || ''}</div></div>
+    <div class="fy-hm-stat"><div class="fy-hm-stat-label">Worst month</div><div class="fy-hm-stat-val neg">${worstMonth ? '₹' + fmt(worstMonth.pnl) : '—'}</div><div class="fy-hm-stat-sub">${worstMonth?.mk || ''}</div></div>`;
+  const MONTH_LABELS = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"];
+  const maxAbsPnl = Math.max(...monthRows.map(r => Math.abs(r.pnl)), 1);
+  let hmHtml = `<div class="fy-hm-label" style="font-size:9px;text-align:center;padding:0;">Month</div>`;
+  MONTH_LABELS.forEach(ml => { hmHtml += `<div class="fy-hm-header">${ml}</div>`; });
+  hmHtml += `<div class="fy-hm-label">Trades</div>`;
+  monthRows.forEach(r => { hmHtml += `<div class="fy-hm-cell no-data" style="font-size:11px;font-weight:700;color:var(--text2)">${r.trades.length || '—'}</div>`; });
+  hmHtml += `<div class="fy-hm-label">Win %</div>`;
+  monthRows.forEach(r => { const val = r.winPct !== null ? r.winPct.toFixed(0) + '%' : '—'; const cls = r.winPct !== null ? (r.winPct >= 50 ? 'profit' : 'loss') : 'no-data'; hmHtml += `<div class="fy-hm-cell ${cls}">${val}</div>`; });
+  hmHtml += `<div class="fy-hm-label">P&L</div>`;
+  monthRows.forEach(r => {
+    if (!r.trades.length) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; }
+    const strength = Math.abs(r.pnl) / maxAbsPnl > 0.5 ? ' strong' : '';
+    const cls = r.pnl >= 0 ? `profit${strength}` : `loss${strength}`;
+    const v = Math.abs(r.pnl) >= 100000 ? (r.pnl / 100000).toFixed(1) + 'L' : Math.abs(r.pnl) >= 1000 ? (r.pnl / 1000).toFixed(0) + 'K' : r.pnl.toFixed(0);
+    hmHtml += `<div class="fy-hm-cell ${cls}" title="${r.mk}: ₹${fmt(r.pnl)}">${r.pnl >= 0 ? '+' : ''}${v}</div>`;
+  });
+  hmHtml += `<div class="fy-hm-label">P&L %</div>`;
+  monthRows.forEach(r => { if (!r.trades.length || r.pnlPct === null) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; } const cls = r.pnlPct >= 0 ? 'profit' : 'loss'; hmHtml += `<div class="fy-hm-cell ${cls}">${r.pnlPct >= 0 ? '+' : ''}${r.pnlPct.toFixed(1)}%</div>`; });
+  document.getElementById("fyHeatmap").innerHTML = hmHtml;
+  let cumRun = 0, totTrades = 0, totWins = 0, totLosses = 0, totPnl = 0;
+  let rows = '';
+  monthRows.forEach(r => {
+    cumRun += r.pnl; totTrades += r.trades.length; totWins += r.wins; totLosses += r.losses; totPnl += r.pnl;
+    const pnlCls = r.pnl > 0 ? 'mpt-pnl-pos' : r.pnl < 0 ? 'mpt-pnl-neg' : 'mpt-muted';
+    const cumCls = cumRun > 0 ? 'mpt-pnl-pos' : cumRun < 0 ? 'mpt-pnl-neg' : 'mpt-muted';
+    rows += `<tr><td class="mpt-month" onclick="jumpToMonth('${r.mk}')">${r.mk}</td><td class="mpt-muted">${r.cap ? '₹' + fmt(r.cap) : '—'}</td><td class="mpt-muted">${r.trades.length || '—'}</td><td style="color:var(--green)">${r.wins || '—'}</td><td style="color:var(--red)">${r.losses || '—'}</td><td class="${r.winPct !== null ? (r.winPct >= 50 ? 'mpt-pnl-pos' : 'mpt-pnl-neg') : 'mpt-muted'}">${r.winPct !== null ? r.winPct.toFixed(1) + '%' : '—'}</td><td class="mpt-pnl-pos">${r.best !== null ? '+₹' + fmt(r.best) : '—'}</td><td class="mpt-pnl-neg">${r.worst !== null ? '₹' + fmt(r.worst) : '—'}</td><td class="${pnlCls}">${r.pnl !== 0 ? (r.pnl > 0 ? '+' : '') + '₹' + fmt(r.pnl) : '—'}</td><td class="${pnlCls}">${r.pnlPct !== null ? (r.pnlPct >= 0 ? '+' : '') + r.pnlPct.toFixed(2) + '%' : '—'}</td><td class="${cumCls}">${cumRun !== 0 ? (cumRun > 0 ? '+' : '') + '₹' + fmt(cumRun) : '—'}</td></tr>`;
+  });
+  const totCls = totPnl > 0 ? 'mpt-pnl-pos' : totPnl < 0 ? 'mpt-pnl-neg' : 'mpt-muted';
+  const totWinPct = totTrades ? (totWins / totTrades * 100) : 0;
+  const totPnlPct = fyCap ? (totPnl / fyCap * 100) : null;
+  rows += `<tr class="mpt-total"><td style="color:var(--text)">Total (${fyLabel})</td><td class="mpt-muted">${fyCap ? '₹' + fmt(fyCap) : '—'}</td><td style="color:var(--text)">${totTrades}</td><td style="color:var(--green)">${totWins}</td><td style="color:var(--red)">${totLosses}</td><td class="${totWinPct >= 50 ? 'mpt-pnl-pos' : 'mpt-pnl-neg'}">${totTrades ? totWinPct.toFixed(1) + '%' : '—'}</td><td>—</td><td>—</td><td class="${totCls}">${totPnl !== 0 ? (totPnl > 0 ? '+' : '') + '₹' + fmt(totPnl) : '—'}</td><td class="${totCls}">${totPnlPct !== null ? (totPnlPct >= 0 ? '+' : '') + totPnlPct.toFixed(2) + '%' : '—'}</td><td class="${totCls}">${totPnl !== 0 ? (totPnl > 0 ? '+' : '') + '₹' + fmt(totPnl) : '—'}</td></tr>`;
+  document.getElementById("summaryMonthBody").innerHTML = rows;
+}
+
+function jumpToMonth(mk) {
+  currentMonth = mk;
+  document.getElementById("monthPickerLabel").textContent = mk;
+  const parts = mk.split(" "); mpYear = parseInt(parts[1]);
+  const mi = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(parts[0]);
+  calNavDate = new Date(mpYear, mi, 1);
+  loadMonth(); updateFYStats();
+  document.querySelectorAll(".sidebar-tab, .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panelLog").classList.add("active");
+  document.querySelectorAll("[onclick*=\"'log'\"]").forEach(el => el.classList.add("active"));
+}
+
+// ── DAY DETAIL MODAL ──
+function openDayModal(dateStr) {
+  const trades = Object.values(state.months).flatMap(m => m.trades || []).filter(t => t.date === dateStr);
+  if (!trades.length) return;
+
+  const netPnl  = trades.reduce((s, t) => s + t.pnl, 0);
+  const winners = trades.filter(t => t.pnl > 0).length;
+  const losers  = trades.filter(t => t.pnl < 0).length;
+  const isProfit = netPnl >= 0;
+  const color  = isProfit ? "var(--green)" : "var(--red)";
+  const sign   = isProfit ? "+" : "";
+
+  // Format date nicely
+  const d = new Date(dateStr + "T00:00:00");
+  const dayName = d.toLocaleDateString("en-IN", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+  document.getElementById("dayModalDate").textContent = dayName;
+  document.getElementById("dayModalNetPnl").innerHTML =
+    `Net P&L: <span style="color:${color}">${sign}₹${Math.abs(Math.round(netPnl)).toLocaleString("en-IN")}</span>`;
+
+  document.getElementById("dayModalSummary").innerHTML = [
+    { lbl:"Total Trades", val: trades.length, col:"var(--text)" },
+    { lbl:"Winners",      val: winners,        col:"var(--green)" },
+    { lbl:"Losers",       val: losers,         col:"var(--red)" },
+    { lbl:"Win Rate",     val: (winners/trades.length*100).toFixed(0)+"%", col:"var(--text)" },
+    { lbl:"Gross P&L",   val: sign+"₹"+Math.abs(Math.round(netPnl)).toLocaleString("en-IN"), col: color },
+  ].map(s => `<div class="day-stat"><div class="day-stat-lbl">${s.lbl}</div><div class="day-stat-val" style="color:${s.col}">${s.val}</div></div>`).join("");
+
+  document.getElementById("dayModalTrades").innerHTML = trades
+    .sort((a,b) => b.pnl - a.pnl)
+    .map(t => {
+      const tc = t.pnl >= 0 ? "var(--green)" : "var(--red)";
+      const ts = t.pnl >= 0 ? "+" : "";
+      return `<div class="day-trade-row">
+        <span class="dt-scrip">${t.scrip}</span>
+        <span><span class="rc-type ${t.type==="BTST"?"win":t.type==="INTRA"?"loss":"neutral"}" style="font-size:10px;padding:2px 7px;">${t.type||"—"}</span></span>
+        <span style="text-align:right;color:var(--muted)">₹${Number(t.buy||0).toLocaleString("en-IN")}</span>
+        <span style="text-align:right;color:var(--muted)">₹${Number(t.sell||0).toLocaleString("en-IN")}</span>
+        <span style="text-align:right;color:var(--muted)">${t.qty||"—"}</span>
+        <span style="text-align:right;font-weight:800;color:${tc}">${ts}₹${Math.abs(Math.round(t.pnl)).toLocaleString("en-IN")}</span>
+      </div>`;
+    }).join("");
+
+  const modal = document.getElementById("dayModal");
+  modal.style.display = "flex";
+  requestAnimationFrame(() => modal.classList.add("open"));
+}
+
+function closeDayModal(e) {
+  if (e && e.target !== document.getElementById("dayModal") && e.type !== "click") return;
+  const modal = document.getElementById("dayModal");
+  modal.classList.remove("open");
+  setTimeout(() => { modal.style.display = "none"; }, 150);
+}
+updateSortHeaders();
+initDrive();
+
+// ── TRADE REVIEW ──
+const REVIEW_THRESHOLD = 30000;
+
+const WIN_REASONS  = ["Select reason…","Big gap up","Greater than 1% gap and follow through","Flat opening and went up","Flat opening shakeout and moved higher","Gap down opening and immediate recovery","Intraday move"];
+const LOSS_REASONS = ["Select reason…","Global Market Gap down","Extended stock","Flat opening followed by Sell off","Intraday Crash","Stock specific Gap Down"];
+
+function getAllBigTrades() {
+  const all = [];
+  Object.entries(state.months).forEach(([mk, m]) => {
+    (m.trades || []).forEach(t => {
+      if (Math.abs(t.pnl) >= REVIEW_THRESHOLD) all.push({ ...t, month: mk });
+    });
+  });
+  all.sort((a, b) => new Date(b.date || "2000-01-01") - new Date(a.date || "2000-01-01"));
+  return all;
+}
+
+function saveReviewReason(id, value) {
+  if (!state.reviews[id]) state.reviews[id] = {};
+  state.reviews[id].reason = value;
+  saveLocal();
+  populateReasonFilter();
+  renderTradeReview();
+  const dot = document.getElementById("rcDot_" + id);
+  if (dot) { dot.classList.add("show"); setTimeout(() => dot.classList.remove("show"), 1800); }
+}
+
+function populateMonthFilter() {
+  const sel = document.getElementById("reviewMonthFilter");
+  if (!sel) return;
+  const months = Object.keys(state.months).filter(mk => (state.months[mk].trades || []).some(t => Math.abs(t.pnl) >= REVIEW_THRESHOLD));
+  months.sort((a,b) => new Date("01 " + b) - new Date("01 " + a));
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m}" ${m===cur?"selected":""}>${m}</option>`).join("");
+}
+
+function populateReasonFilter() {
+  const sel = document.getElementById("reviewReasonFilter");
+  if (!sel) return;
+  const cur = sel.value;
+  const allReasons = [...new Set([...WIN_REASONS, ...LOSS_REASONS])].filter(r => r !== "Select reason…");
+  const usedReasons = allReasons.filter(r => Object.values(state.reviews).some(rv => rv.reason === r));
+  sel.innerHTML = '<option value="all">All reasons</option>' + usedReasons.map(r => `<option value="${r}" ${r===cur?"selected":""}>${r}</option>`).join("");
+}
+
+function renderTradeReview() {
+  populateMonthFilter();
+  populateReasonFilter();
+  const filter       = document.getElementById("reviewFilter")?.value || "all";
+  const mFilter      = document.getElementById("reviewMonthFilter")?.value || "all";
+  const reasonFilter = document.getElementById("reviewReasonFilter")?.value || "all";
+
+  let allBig = getAllBigTrades();
+
+  // Apply month filter first for stats
+  let filtered = allBig;
+  if (mFilter !== "all")      filtered = filtered.filter(t => t.month === mFilter);
+  if (filter === "winners")   filtered = filtered.filter(t => t.pnl > 0);
+  if (filter === "losers")    filtered = filtered.filter(t => t.pnl < 0);
+  if (reasonFilter !== "all") filtered = filtered.filter(t => (state.reviews[t.id]?.reason || "") === reasonFilter);
+
+  // Stats reflect current filters
+  const winners  = filtered.filter(t => t.pnl > 0).length;
+  const losers   = filtered.filter(t => t.pnl < 0).length;
+  const cumTotal = filtered.reduce((s, t) => s + t.pnl, 0);
+  const cumColor = cumTotal >= 0 ? "var(--green)" : "var(--red)";
+  const cumSign  = cumTotal >= 0 ? "+" : "";
+  document.getElementById("reviewStats").innerHTML =
+    `<span style="color:var(--green);font-weight:700">${winners} big wins</span>&nbsp;·&nbsp;<span style="color:var(--red);font-weight:700">${losers} big losses</span>&nbsp;·&nbsp;<span style="color:${cumColor};font-weight:700">${cumSign}₹${Math.abs(Math.round(cumTotal)).toLocaleString("en-IN")}</span>`;
+
+  // Cumulative stat bar — show when any filter is active
+  const cumEl = document.getElementById("reviewCumStat");
+  const anyFilterActive = mFilter !== "all" || filter !== "all" || reasonFilter !== "all";
+  if (anyFilterActive && filtered.length) {
+    const cumPnl   = filtered.reduce((s, t) => s + t.pnl, 0);
+    const isProfit = cumPnl >= 0;
+    const color    = isProfit ? "var(--green)" : "var(--red)";
+    const sign     = isProfit ? "+" : "";
+    const labelParts = [];
+    if (mFilter !== "all")      labelParts.push(mFilter);
+    if (filter === "winners")   labelParts.push("Winners");
+    if (filter === "losers")    labelParts.push("Losers");
+    if (reasonFilter !== "all") labelParts.push(reasonFilter);
+    cumEl.style.display = "flex";
+    cumEl.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;white-space:nowrap;">Filter</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);flex:1;min-width:0;">${labelParts.join(" · ") || "All"}</div>
+      <div style="width:1px;background:var(--border);align-self:stretch;flex-shrink:0;"></div>
+      <div style="text-align:center;flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Trades</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${filtered.length}</div>
+      </div>
+      <div style="width:1px;background:var(--border);align-self:stretch;flex-shrink:0;"></div>
+      <div style="text-align:center;flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Cumulative P&L</div>
+        <div style="font-size:20px;font-weight:800;color:${color}">${sign}₹${Math.abs(Math.round(cumPnl)).toLocaleString("en-IN")}</div>
+      </div>
+      <div style="width:1px;background:var(--border);align-self:stretch;flex-shrink:0;"></div>
+      <div style="text-align:center;flex-shrink:0;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Avg per Trade</div>
+        <div style="font-size:20px;font-weight:800;color:${color}">${sign}₹${Math.abs(Math.round(cumPnl/filtered.length)).toLocaleString("en-IN")}</div>
+      </div>`;
+  } else {
+    cumEl.style.display = "none";
+  }
+
+  const wrap = document.getElementById("reviewCards");
+  if (!filtered.length) {
+    wrap.innerHTML = `<div class="review-empty"><i class="ti ti-mood-search"></i>No matching trades found.<br><span style="font-size:13px;margin-top:6px;display:block;">Big trades (P&L ≥ ₹30,000) appear here automatically.</span></div>`;
+    return;
+  }
+
+  wrap.innerHTML = filtered.map(t => {
+    const isWin = t.pnl >= 0;
+    const rev = state.reviews[t.id] || {};
+    const pnlSign = isWin ? "+" : "";
+    const pnlFmt = pnlSign + "₹" + Math.abs(Math.round(t.pnl)).toLocaleString("en-IN");
+    const opts = (isWin ? WIN_REASONS : LOSS_REASONS).map(o => `<option value="${o}" ${rev.reason===o?"selected":""}>${o}</option>`).join("");
+    return `<div class="review-card ${isWin ? "rc-win" : "rc-loss"}">
+      <div class="rc-scrip">${t.scrip}</div>
+      <span class="rc-type ${isWin?"win":"loss"}">${t.type||"BTST"}</span>
+      <span style="font-size:12px;color:var(--muted);">${t.date || ""}</span>
+      <span style="font-size:12px;color:var(--muted);">${t.month}</span>
+      <select class="rc-reason-select" onchange="saveReviewReason(${t.id}, this.value)">${opts}</select>
+      <div class="rc-pnl ${isWin?"pos":"neg"}" style="text-align:right;">${pnlFmt}</div>
+      <span class="rc-saved-dot" id="rcDot_${t.id}"></span>
+    </div>`;
+  }).join("");
+}
+</script>
+</body>
+</html>
