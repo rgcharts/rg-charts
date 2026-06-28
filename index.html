@@ -682,9 +682,119 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 }
 </style>
 </head>
-<body>
+<style>
+/* ── LOGIN PAGE ── */
+#loginPage {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0a0b0d;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Calibri', sans-serif;
+}
+.login-bg {
+  position: absolute; inset: 0; overflow: hidden;
+}
+.login-bg-orb {
+  position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.15;
+}
+.login-card {
+  position: relative; z-index: 1;
+  background: rgba(20,23,32,0.85);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 24px;
+  padding: 52px 48px;
+  width: 420px;
+  text-align: center;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+}
+.login-logo {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 26px; font-weight: 900; color: #fff; letter-spacing: -1px;
+  box-shadow: 0 8px 32px rgba(139,92,246,0.4);
+}
+.login-brand { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 2px; margin-bottom: 4px; }
+.login-sub { font-size: 13px; color: #6b7280; letter-spacing: 0.5px; margin-bottom: 36px; }
+.login-divider { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.login-divider::before, .login-divider::after { content:""; flex:1; height:1px; background:rgba(255,255,255,0.08); }
+.login-divider span { font-size: 11px; color: #4b5563; }
+.login-google-btn {
+  width: 100%; padding: 14px 20px;
+  background: #fff; color: #1f2937;
+  border: none; border-radius: 12px;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: 'Calibri', sans-serif;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.login-google-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.login-google-btn:active { transform: translateY(0); }
+.login-footer { margin-top: 28px; font-size: 11px; color: #374151; line-height: 1.6; }
+.login-stats {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 32px;
+}
+.login-stat { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 8px; }
+.login-stat-val { font-size: 20px; font-weight: 800; color: #8b5cf6; }
+.login-stat-lbl { font-size: 10px; color: #4b5563; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.login-loading { color: #6b7280; font-size: 13px; margin-top: 16px; display: none; }
+@keyframes loginFadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.login-card { animation: loginFadeIn 0.5s ease; }
+</style>
 
-<!-- TOP NAV -->
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-bg">
+    <div class="login-bg-orb" style="width:600px;height:600px;background:#6366f1;top:-200px;left:-100px;"></div>
+    <div class="login-bg-orb" style="width:400px;height:400px;background:#8b5cf6;bottom:-100px;right:-50px;"></div>
+    <div class="login-bg-orb" style="width:300px;height:300px;background:#10b981;bottom:100px;left:100px;opacity:0.08;"></div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">RG</div>
+    <div class="login-brand">RG CHARTS</div>
+    <div class="login-sub">TRADING JOURNAL</div>
+
+    <div class="login-stats">
+      <div class="login-stat">
+        <div class="login-stat-val">BTST</div>
+        <div class="login-stat-lbl">Strategy</div>
+      </div>
+      <div class="login-stat">
+        <div class="login-stat-val">NSE</div>
+        <div class="login-stat-lbl">Exchange</div>
+      </div>
+      <div class="login-stat">
+        <div class="login-stat-val">∞</div>
+        <div class="login-stat-lbl">Synced</div>
+      </div>
+    </div>
+
+    <div class="login-divider"><span>Sign in to access your journal</span></div>
+
+    <button class="login-google-btn" onclick="loginWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+
+    <div class="login-loading" id="loginLoading">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      Signing in…
+    </div>
+
+    <div class="login-footer">
+      Your data is encrypted and stored securely.<br>Only you can access your journal.
+    </div>
+  </div>
+</div>
+
+
 <nav class="nav">
   <div class="nav-brand" onclick="window.location.href='rg_charts_home.html'">
     <div class="nav-brand-mark">RG</div>
@@ -1266,13 +1376,19 @@ function loadScript(src) {
   });
 }
 
-async function signInWithGoogle() {
+async function loginWithGoogle() {
   if (!auth) return;
+  document.getElementById("loginLoading").style.display = "block";
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     await auth.signInWithPopup(provider);
-  } catch(e) { alert("Sign in failed: " + e.message); }
+  } catch(e) {
+    document.getElementById("loginLoading").style.display = "none";
+    alert("Sign in failed: " + e.message);
+  }
 }
+
+async function signInWithGoogle() { loginWithGoogle(); }
 
 async function signOut() {
   if (!auth) return;
@@ -1280,20 +1396,26 @@ async function signOut() {
   state = { months: {}, fyCapitals: {}, reviews: {} };
   loadMonth(); renderCalendar(); updateFYStats();
   setDriveStatus("error", "Signed out");
+  const lp = document.getElementById("loginPage");
+  if (lp) { lp.style.opacity = "1"; lp.style.display = "flex"; }
 }
 
 function renderNavUser(user) {
   const badge = document.getElementById("authBadge");
-  if (!badge) return;
+  const loginPage = document.getElementById("loginPage");
   if (user) {
-    badge.innerHTML = `
+    if (loginPage) {
+      loginPage.style.transition = "opacity 0.4s";
+      loginPage.style.opacity = "0";
+      setTimeout(() => { loginPage.style.display = "none"; }, 400);
+    }
+    if (badge) badge.innerHTML = `
       <img src="${user.photoURL}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
       <span style="font-size:11px;font-weight:600;">${user.displayName?.split(" ")[0] || "User"}</span>
       <button onclick="signOut()" style="background:none;border:none;font-size:10px;color:var(--muted);cursor:pointer;padding:0;font-family:inherit;">Sign out</button>`;
   } else {
-    badge.innerHTML = `<button onclick="signInWithGoogle()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;">
-      <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Sign in with Google</button>`;
+    if (loginPage) { loginPage.style.display = "flex"; loginPage.style.opacity = "1"; }
+    if (badge) badge.innerHTML = "";
   }
 }
 
