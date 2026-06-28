@@ -7,6 +7,9 @@
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -692,14 +695,20 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   </div>
 
   <div class="nav-right">
-    <div class="drive-badge">
+    <div class="drive-badge" onclick="manualDriveSync()" title="Click to sync now" style="cursor:pointer;">
       <span class="dot loading" id="driveDot"></span>
       <span id="driveLabel" style="font-size:11px;">Connecting…</span>
+      <span id="driveLastSync" style="font-size:10px;color:var(--muted);margin-left:2px;"></span>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
       <i class="ti ti-moon" id="themeIcon"></i> <span id="themeLabel">Light</span>
     </button>
     <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> Export</button>
+    <button class="btn btn-sm" onclick="backupAllData()" title="Download all trades as JSON backup" style="background:var(--accent3);color:#fff;border-color:var(--accent3);"><i class="ti ti-database-export"></i> Backup</button>
+    <label class="btn btn-sm" title="Restore from JSON backup" style="cursor:pointer;margin:0;">
+      <i class="ti ti-database-import"></i> Restore
+      <input type="file" accept=".json" onchange="restoreAllData(event)" style="display:none;">
+    </label>
   </div>
 </nav>
 
@@ -1134,6 +1143,16 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     <!-- Summary strip -->
     <div id="dayModalSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px;"></div>
 
+    <div id="dayChartPanel" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Chart — <span id="dayChartSymbol"></span></div>
+        <button onclick="document.getElementById('dayChartPanel').style.display='none';if(dayChartInst){dayChartInst.destroy();dayChartInst=null;}" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">✕</button>
+      </div>
+      <!-- Timeframe bar -->
+      <div id="dayChartTfBar" style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;"></div>
+      <div id="dayChartWidget" style="height:460px;border-radius:10px;overflow:hidden;"></div>
+    </div>
+
     <!-- Trade rows -->
     <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;display:grid;grid-template-columns:1fr 70px 90px 90px 90px 100px;gap:10px;padding:0 4px;">
       <span>Scrip</span><span>Type</span><span style="text-align:right">Buy</span><span style="text-align:right">Sell</span><span style="text-align:right">Qty</span><span style="text-align:right">Net P&L</span>
@@ -1271,6 +1290,25 @@ function setDriveStatus(type, label) {
   const dot = document.getElementById("driveDot");
   dot.className = "dot" + (type === "connected" ? " connected" : type === "loading" ? " loading" : "");
   document.getElementById("driveLabel").textContent = label;
+  if (type === "connected") {
+    const now = new Date();
+    const t = now.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" });
+    const lastEl = document.getElementById("driveLastSync");
+    if (lastEl) lastEl.textContent = "· " + t;
+  }
+}
+
+async function manualDriveSync() {
+  const dot = document.getElementById("driveDot");
+  if (dot.classList.contains("loading")) return; // already syncing
+  setDriveStatus("loading", "Syncing…");
+  try {
+    await saveToDrive();
+    setDriveStatus("connected", "Synced");
+  } catch(e) {
+    setDriveStatus("error", "Sync failed");
+    setTimeout(() => setDriveStatus("connected", "Drive"), 2000);
+  }
 }
 function setStatus(type, msg) {
   const el = document.getElementById("saveStatus");
@@ -1661,7 +1699,57 @@ function showTab(tab, el) {
   document.querySelectorAll(`[onclick*="'${tab}'"]`).forEach(el => el.classList.add("active"));
 }
 
+function backupAllData() {
+  const payload = JSON.stringify({
+    months: state.months,
+    fyCapitals: state.fyCapitals || {},
+    reviews: state.reviews || {},
+    driveFileId: state.driveFileId || null,
+    exportedAt: new Date().toISOString()
+  }, null, 2);
+  const blob = new Blob([payload], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  const date = new Date().toISOString().split("T")[0];
+  a.href = url; a.download = `rg-charts-backup-${date}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function restoreAllData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if (!parsed.months) throw new Error("Invalid backup file");
+      const count = Object.values(parsed.months).reduce((s, m) => s + (m.trades||[]).length, 0);
+      if (!confirm(`Restore ${count} trades from backup?\n\nThis will MERGE with your existing data (won't delete anything).`)) return;
+      // Merge months
+      Object.entries(parsed.months || {}).forEach(([mk, m]) => {
+        if (!state.months[mk]) state.months[mk] = m;
+        else {
+          // Merge trades by id
+          const existingIds = new Set((state.months[mk].trades||[]).map(t => t.id));
+          (m.trades||[]).forEach(t => { if (!existingIds.has(t.id)) state.months[mk].trades.push(t); });
+        }
+      });
+      Object.assign(state.fyCapitals, parsed.fyCapitals || {});
+      Object.assign(state.reviews,    parsed.reviews    || {});
+      saveLocal();
+      saveToDrive();
+      loadMonth(); renderCalendar(); updateFYStats();
+      alert(`✅ Restored successfully! ${count} trades loaded.`);
+    } catch(err) {
+      alert("❌ Invalid backup file. Please use a file exported from RG Charts.");
+    }
+    event.target.value = "";
+  };
+  reader.readAsText(file);
+}
+
 function exportCSV() {
+  const capital = parseFloat(document.getElementById("monthCapital")?.value) || 0;
   const trades = state.months[currentMonth]?.trades || [];
   const cap = capital || 1;
   const rows = [["Month","Scrip","Type","Bought at","Qty","Invested","% on PF","Sold at","Sold on","P&L","P&L%","PF Impact%"]];
@@ -2223,7 +2311,7 @@ function openDayModal(dateStr) {
       const tc = t.pnl >= 0 ? "var(--green)" : "var(--red)";
       const ts = t.pnl >= 0 ? "+" : "";
       return `<div class="day-trade-row">
-        <span class="dt-scrip">${t.scrip}</span>
+        <span class="dt-scrip" onclick="showDayChart('${t.scrip}', '${dateStr}')" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" title="Click to view chart">${t.scrip}</span>
         <span><span class="rc-type ${t.type==="BTST"?"win":t.type==="INTRA"?"loss":"neutral"}" style="font-size:10px;padding:2px 7px;">${t.type||"—"}</span></span>
         <span style="text-align:right;color:var(--muted)">₹${Number(t.buy||0).toLocaleString("en-IN")}</span>
         <span style="text-align:right;color:var(--muted)">₹${Number(t.sell||0).toLocaleString("en-IN")}</span>
@@ -2237,11 +2325,242 @@ function openDayModal(dateStr) {
   requestAnimationFrame(() => modal.classList.add("open"));
 }
 
-function closeDayModal(e) {
-  if (e && e.target !== document.getElementById("dayModal") && e.type !== "click") return;
-  const modal = document.getElementById("dayModal");
-  modal.classList.remove("open");
-  setTimeout(() => { modal.style.display = "none"; }, 150);
+let dayChartInst   = null;
+let dayChartVolInst = null;
+let _chartScrip    = "";
+let _chartDate     = "";
+let _chartAllCandles = [];
+
+const CHART_TFS = [
+  { label:"1W",  days:7,   interval:"1d" },
+  { label:"1M",  days:30,  interval:"1d" },
+  { label:"3M",  days:90,  interval:"1d" },
+  { label:"6M",  days:180, interval:"1d" },
+  { label:"1Y",  days:365, interval:"1d" },
+];
+let _activeTf = 2; // default 3M
+
+async function showDayChart(scrip, dateStr) {
+  const panel = document.getElementById("dayChartPanel");
+  const wrap  = document.getElementById("dayChartWidget");
+  const symEl = document.getElementById("dayChartSymbol");
+  symEl.textContent = scrip;
+  panel.style.display = "block";
+  _chartScrip = scrip;
+  _chartDate  = dateStr;
+  panel.scrollIntoView({ behavior:"smooth", block:"nearest" });
+
+  // Build timeframe buttons
+  const tfBar = document.getElementById("dayChartTfBar");
+  tfBar.innerHTML = CHART_TFS.map((tf, i) => `
+    <button id="tfBtn_${i}" onclick="switchChartTf(${i})"
+      style="padding:4px 12px;border-radius:6px;border:1px solid var(--border2);font-size:12px;font-weight:700;
+             cursor:pointer;font-family:inherit;transition:all 0.15s;
+             background:${i===_activeTf?"var(--accent2)":"var(--surface2)"};
+             color:${i===_activeTf?"#fff":"var(--muted)"};">
+      ${tf.label}
+    </button>`).join("");
+
+  await fetchAndRenderChart(scrip, dateStr, _activeTf);
+}
+
+function switchChartTf(idx) {
+  _activeTf = idx;
+  // Update button styles
+  CHART_TFS.forEach((_, i) => {
+    const btn = document.getElementById("tfBtn_" + i);
+    if (!btn) return;
+    btn.style.background = i === idx ? "var(--accent2)" : "var(--surface2)";
+    btn.style.color      = i === idx ? "#fff" : "var(--muted)";
+  });
+  fetchAndRenderChart(_chartScrip, _chartDate, idx);
+}
+
+function calcEMA(data, period) {
+  const k = 2 / (period + 1);
+  const ema = [];
+  let prev = null;
+  data.forEach((v, i) => {
+    if (i < period - 1) { ema.push(null); return; }
+    if (i === period - 1) {
+      prev = data.slice(0, period).reduce((a, b) => a + b, 0) / period;
+      ema.push(prev); return;
+    }
+    prev = v * k + prev * (1 - k);
+    ema.push(prev);
+  });
+  return ema;
+}
+
+async function fetchAndRenderChart(scrip, dateStr, tfIdx) {
+  const wrap = document.getElementById("dayChartWidget");
+  wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);font-size:14px;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    Loading ${scrip}…
+  </div>`;
+
+  try {
+    const tf      = CHART_TFS[tfIdx];
+    const to      = Math.floor(Date.now() / 1000);
+    const from    = to - 60 * 60 * 24 * tf.days;
+    const ySymbol = scrip + ".NS";
+    const url     = `https://query1.finance.yahoo.com/v8/finance/chart/${ySymbol}?period1=${from}&period2=${to}&interval=${tf.interval}`;
+    const proxy   = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+    const res    = await fetch(proxy);
+    const json   = await res.json();
+    const result = JSON.parse(json.contents)?.chart?.result?.[0];
+    if (!result) throw new Error("No data");
+
+    const timestamps = result.timestamp;
+    const q = result.indicators.quote[0];
+    const vol = result.indicators.quote[0].volume || [];
+
+    const candles = timestamps.map((t, i) => ({
+      x: t * 1000,
+      o: +q.open[i]?.toFixed(2),
+      h: +q.high[i]?.toFixed(2),
+      l: +q.low[i]?.toFixed(2),
+      c: +q.close[i]?.toFixed(2),
+      v: vol[i] || 0
+    })).filter(c => c.o && c.h && c.l && c.c);
+
+    const closes     = candles.map(c => c.c);
+    const ema20vals  = calcEMA(closes, 20);
+    const ema50vals  = calcEMA(closes, 50);
+
+    const tradeDateMs = new Date(dateStr + "T00:00:00+05:30").getTime();
+    const isDark  = !document.body.classList.contains("light-mode");
+    const gridCol = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+    const textCol = isDark ? "#9ca3af" : "#6b7280";
+    const bgCol   = isDark ? "#1a1f2e" : "#ffffff";
+
+    // Destroy previous
+    if (dayChartInst) { dayChartInst.destroy(); dayChartInst = null; }
+
+    // Two canvas — top: OHLC+EMA, bottom: Volume
+    wrap.innerHTML = `
+      <div style="height:100%;display:flex;flex-direction:column;background:${bgCol};border-radius:10px;padding:10px 4px 4px;">
+        <canvas id="dayChartCanvas" style="flex:1;min-height:0;"></canvas>
+        <canvas id="dayVolCanvas"   style="height:60px;margin-top:4px;"></canvas>
+      </div>`;
+
+    const ctx    = document.getElementById("dayChartCanvas").getContext("2d");
+    const volCtx = document.getElementById("dayVolCanvas").getContext("2d");
+
+    // Price range for tight Y scale
+    const highs  = candles.map(c => c.h);
+    const lows   = candles.map(c => c.l);
+    const minY   = Math.min(...lows)  * 0.997;
+    const maxY   = Math.max(...highs) * 1.003;
+
+    // Trade day annotation data
+    const tradeCandle = candles.find(c => {
+      return new Date(c.x).toDateString() === new Date(tradeDateMs).toDateString();
+    });
+
+    dayChartInst = new Chart(ctx, {
+      type: "candlestick",
+      data: {
+        datasets: [
+          {
+            label: scrip,
+            data: candles,
+            color: { up:"#10b981", down:"#ef4444", unchanged:"#9ca3af" },
+            borderColor: { up:"#10b981", down:"#ef4444", unchanged:"#9ca3af" }
+          },
+          {
+            type: "line", label: "EMA 20",
+            data: candles.map((c, i) => ({ x: c.x, y: ema20vals[i] })).filter(p => p.y),
+            borderColor: "#f59e0b", borderWidth: 1.5,
+            pointRadius: 0, tension: 0.1
+          },
+          {
+            type: "line", label: "EMA 50",
+            data: candles.map((c, i) => ({ x: c.x, y: ema50vals[i] })).filter(p => p.y),
+            borderColor: "#a78bfa", borderWidth: 1.5,
+            pointRadius: 0, tension: 0.1
+          },
+          ...(tradeCandle ? [{
+            type: "line", label: "Trade",
+            data: [{ x: tradeCandle.x, y: tradeCandle.h * 1.008 }],
+            pointRadius: 9, pointStyle: "triangle",
+            pointBackgroundColor: "#f59e0b", borderWidth: 0, showLine: false
+          }] : [])
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 300 },
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: textCol, font: { size: 11, family:"Calibri" },
+              boxWidth: 20, padding: 10,
+              filter: item => item.text !== scrip
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const d = ctx.raw;
+                if (d?.o !== undefined)
+                  return [`O: ₹${d.o}  H: ₹${d.h}`, `L: ₹${d.l}  C: ₹${d.c}`];
+                return ctx.dataset.label + ": ₹" + (d?.y?.toFixed(2) || "");
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: "timeseries",
+            time: { unit: tf.days <= 30 ? "day" : "week", tooltipFormat: "dd MMM yyyy" },
+            grid: { color: gridCol },
+            ticks: { color: textCol, maxTicksLimit: 8, maxRotation: 0, font:{ size:11 } }
+          },
+          y: {
+            position: "right", min: minY, max: maxY,
+            grid: { color: gridCol },
+            ticks: { color: textCol, callback: v => "₹" + v.toFixed(0), font:{ size:11 } }
+          }
+        }
+      }
+    });
+
+    // Volume chart
+    if (dayChartVolInst) { dayChartVolInst.destroy(); dayChartVolInst = null; }
+    dayChartVolInst = new Chart(volCtx, {
+      type: "bar",
+      data: {
+        datasets: [{
+          data: candles.map(c => ({ x: c.x, y: c.v })),
+          backgroundColor: candles.map(c => c.c >= c.o ? "rgba(16,185,129,0.5)" : "rgba(239,68,68,0.5)"),
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display:false }, tooltip: {
+          callbacks: { label: ctx => "Vol: " + (ctx.raw.y / 1e5).toFixed(1) + "L" }
+        }},
+        scales: {
+          x: { type:"timeseries", display: false },
+          y: { position:"right", grid:{ color:gridCol },
+               ticks:{ color:textCol, font:{size:9}, maxTicksLimit:3,
+                       callback: v => v >= 1e5 ? (v/1e5).toFixed(0)+"L" : (v/1e3).toFixed(0)+"K" }}
+        }
+      }
+    });
+
+  } catch(err) {
+    wrap.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);font-size:14px;">
+      <span style="font-size:28px;">⚠️</span>
+      <span>Could not load chart for <strong>${scrip}</strong></span>
+      <span style="font-size:12px;text-align:center;">Check your internet connection or the symbol may not be available on Yahoo Finance.</span>
+    </div>`;
+  }
 }
 updateSortHeaders();
 initDrive();
@@ -2374,6 +2693,19 @@ function renderTradeReview() {
       <span class="rc-saved-dot" id="rcDot_${t.id}"></span>
     </div>`;
   }).join("");
+}
+
+function closeDayModal(e) {
+  if (e && e.target !== document.getElementById("dayModal")) return;
+  const modal = document.getElementById("dayModal");
+  modal.classList.remove("open");
+  if (dayChartInst)    { dayChartInst.destroy();    dayChartInst    = null; }
+  if (dayChartVolInst) { dayChartVolInst.destroy(); dayChartVolInst = null; }
+  setTimeout(() => {
+    modal.style.display = "none";
+    document.getElementById("dayChartPanel").style.display = "none";
+    document.getElementById("dayChartWidget").innerHTML = "";
+  }, 150);
 }
 </script>
 </body>
