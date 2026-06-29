@@ -1399,7 +1399,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       </div>
       <!-- Timeframe bar -->
       <div id="dayChartTfBar" style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;"></div>
-      <div id="dayChartWidget" style="height:460px;border-radius:10px;overflow:hidden;"></div>
+      <div id="dayChartWidget" style="height:480px;border-radius:10px;overflow:hidden;"></div>
     </div>
 
     <!-- Trade rows -->
@@ -2797,8 +2797,8 @@ async function fetchAndRenderChart(scrip, dateStr, tfIdx) {
     // Two canvas — top: OHLC+EMA, bottom: Volume
     wrap.innerHTML = `
       <div style="height:100%;display:flex;flex-direction:column;background:${bgCol};border-radius:10px;padding:10px 4px 4px;">
-        <canvas id="dayChartCanvas" style="flex:1;min-height:0;"></canvas>
-        <canvas id="dayVolCanvas"   style="height:60px;margin-top:4px;"></canvas>
+        <canvas id="dayChartCanvas" style="height:380px;width:100%;"></canvas>
+        <canvas id="dayVolCanvas"   style="height:70px;width:100%;margin-top:4px;"></canvas>
       </div>`;
 
     const ctx    = document.getElementById("dayChartCanvas").getContext("2d");
