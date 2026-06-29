@@ -102,10 +102,8 @@ body {
   margin-right: 36px; flex-shrink: 0; cursor: pointer;
 }
 .nav-brand-mark {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: #fff; letter-spacing: -0.5px;
 }
 .nav-brand-name { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
 .nav-brand-sub  { font-size: 10px; color: var(--muted); letter-spacing: 0.4px; margin-top: -1px; }
@@ -937,8 +935,34 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 </script>
 
 <nav class="nav">
-  <div class="nav-brand" onclick="window.location.href='rg_charts_home.html'">
-    <div class="nav-brand-mark">RG</div>
+  <div class="nav-brand" style="cursor:default;">
+    <div class="nav-brand-mark">
+      <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#6366f1"/>
+            <stop offset="100%" style="stop-color:#8b5cf6"/>
+          </linearGradient>
+          <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#34d399"/>
+            <stop offset="100%" style="stop-color:#06b6d4"/>
+          </linearGradient>
+        </defs>
+        <!-- Background rounded square -->
+        <rect width="36" height="36" rx="9" fill="url(#bgGrad)"/>
+        <!-- Candlestick 1 (left) -->
+        <line x1="10" y1="8" x2="10" y2="28" stroke="rgba(255,255,255,0.25)" stroke-width="1.2"/>
+        <rect x="7.5" y="13" width="5" height="8" rx="1" fill="#ef4444"/>
+        <!-- Candlestick 2 (middle) -->
+        <line x1="18" y1="6" x2="18" y2="30" stroke="rgba(255,255,255,0.25)" stroke-width="1.2"/>
+        <rect x="15.5" y="10" width="5" height="10" rx="1" fill="#10b981"/>
+        <!-- Candlestick 3 (right) -->
+        <line x1="26" y1="9" x2="26" y2="27" stroke="rgba(255,255,255,0.25)" stroke-width="1.2"/>
+        <rect x="23.5" y="14" width="5" height="7" rx="1" fill="#10b981"/>
+        <!-- Trend line -->
+        <polyline points="7,24 18,14 29,11" fill="none" stroke="url(#lineGrad)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
     <div>
       <div class="nav-brand-name">RG CHARTS</div>
       <div class="nav-brand-sub">TRADING JOURNAL</div>
@@ -978,6 +1002,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   <button class="sidebar-tab" onclick="showTab('summary',this);onSummaryOpen()">
     <i class="ti ti-calendar-stats"></i> <span>Summary</span> <span class="sidebar-dot"></span>
   </button>
+  <div style="flex:1;"></div>
   <button class="sidebar-tab" onclick="showTab('upload',this)">
     <i class="ti ti-upload"></i> <span>Upload</span> <span class="sidebar-dot"></span>
   </button>
