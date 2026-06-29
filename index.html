@@ -1393,9 +1393,25 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     <div id="dayModalSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px;"></div>
 
     <div id="dayChartPanel" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
         <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Chart — <span id="dayChartSymbol"></span></div>
-        <button onclick="document.getElementById('dayChartPanel').style.display='none';if(dayChartInst){dayChartInst.destroy();dayChartInst=null;}" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">✕</button>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <!-- Y-axis scale controls -->
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
+            <span style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Y Scale</span>
+            <button onclick="adjustYScale(-0.05)" title="Tighten Y axis" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">−</button>
+            <button onclick="resetYScale()" title="Reset Y axis" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:10px;font-weight:700;padding:0 2px;font-family:inherit;">AUTO</button>
+            <button onclick="adjustYScale(0.05)" title="Expand Y axis" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">+</button>
+          </div>
+          <!-- X-axis scale controls -->
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
+            <span style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">X Scale</span>
+            <button onclick="adjustXScale(-10)" title="Zoom in X" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">−</button>
+            <button onclick="resetXScale()" title="Reset X axis" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:10px;font-weight:700;padding:0 2px;font-family:inherit;">AUTO</button>
+            <button onclick="adjustXScale(10)" title="Zoom out X" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">+</button>
+          </div>
+          <button onclick="document.getElementById('dayChartPanel').style.display='none';if(dayChartInst){dayChartInst.destroy();dayChartInst=null;}" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">✕</button>
+        </div>
       </div>
       <!-- Timeframe bar -->
       <div id="dayChartTfBar" style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;"></div>
@@ -2670,11 +2686,73 @@ function openDayModal(dateStr) {
   requestAnimationFrame(() => modal.classList.add("open"));
 }
 
-let dayChartInst   = null;
-let dayChartVolInst = null;
-let _chartScrip    = "";
-let _chartDate     = "";
+let _yPadding  = 0.003; // extra % padding above/below price range
+let _xVisible  = 0;    // 0 = show all, positive = limit visible candles
+
+let dayChartInst     = null;
+let dayChartVolInst  = null;
+let _chartScrip      = "";
+let _chartDate       = "";
 let _chartAllCandles = [];
+  _yPadding = Math.max(0, _yPadding + delta);
+  if (!dayChartInst || !_chartAllCandles.length) return;
+  const candles = _chartAllCandles;
+  const highs   = candles.map(c => c.h);
+  const lows    = candles.map(c => c.l);
+  const minY    = Math.min(...lows)  * (1 - _yPadding);
+  const maxY    = Math.max(...highs) * (1 + _yPadding);
+  dayChartInst.options.scales.y.min = minY;
+  dayChartInst.options.scales.y.max = maxY;
+  dayChartInst.update("none");
+}
+
+function resetYScale() {
+  _yPadding = 0.003;
+  if (!dayChartInst || !_chartAllCandles.length) return;
+  const candles = _chartAllCandles;
+  const highs   = candles.map(c => c.h);
+  const lows    = candles.map(c => c.l);
+  dayChartInst.options.scales.y.min = Math.min(...lows)  * 0.997;
+  dayChartInst.options.scales.y.max = Math.max(...highs) * 1.003;
+  dayChartInst.update("none");
+}
+
+function adjustXScale(delta) {
+  if (!dayChartInst || !_chartAllCandles.length) return;
+  const total = _chartAllCandles.length;
+  _xVisible = _xVisible === 0 ? Math.floor(total * 0.7) : _xVisible;
+  _xVisible = Math.max(5, Math.min(total, _xVisible - delta));
+  const slice  = _chartAllCandles.slice(_chartAllCandles.length - _xVisible);
+  const minX   = slice[0].x;
+  const maxX   = slice[slice.length - 1].x;
+  dayChartInst.options.scales.x.min = minX;
+  dayChartInst.options.scales.x.max = maxX;
+  // Recalc Y for visible slice
+  dayChartInst.options.scales.y.min = Math.min(...slice.map(c => c.l)) * (1 - _yPadding);
+  dayChartInst.options.scales.y.max = Math.max(...slice.map(c => c.h)) * (1 + _yPadding);
+  dayChartInst.update("none");
+  // Sync volume chart
+  if (dayChartVolInst) {
+    dayChartVolInst.options.scales.x.min = minX;
+    dayChartVolInst.options.scales.x.max = maxX;
+    dayChartVolInst.update("none");
+  }
+}
+
+function resetXScale() {
+  _xVisible = 0;
+  if (!dayChartInst || !_chartAllCandles.length) return;
+  dayChartInst.options.scales.x.min = undefined;
+  dayChartInst.options.scales.x.max = undefined;
+  dayChartInst.options.scales.y.min = Math.min(..._chartAllCandles.map(c => c.l)) * 0.997;
+  dayChartInst.options.scales.y.max = Math.max(..._chartAllCandles.map(c => c.h)) * 1.003;
+  dayChartInst.update("none");
+  if (dayChartVolInst) {
+    dayChartVolInst.options.scales.x.min = undefined;
+    dayChartVolInst.options.scales.x.max = undefined;
+    dayChartVolInst.update("none");
+  }
+}
 
 const CHART_TFS = [
   { label:"1W",  days:7,   interval:"1d" },
@@ -2780,6 +2858,10 @@ async function fetchAndRenderChart(scrip, dateStr, tfIdx) {
       c: +q.close[i]?.toFixed(2),
       v: vol[i] || 0
     })).filter(c => c.o && c.h && c.l && c.c);
+
+    _chartAllCandles = candles;
+    _yPadding = 0.003;
+    _xVisible = 0;
 
     const closes     = candles.map(c => c.c);
     const ema20vals  = calcEMA(closes, 20);
