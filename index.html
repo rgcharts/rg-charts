@@ -2694,6 +2694,8 @@ let dayChartVolInst  = null;
 let _chartScrip      = "";
 let _chartDate       = "";
 let _chartAllCandles = [];
+
+function adjustYScale(delta) {
   _yPadding = Math.max(0, _yPadding + delta);
   if (!dayChartInst || !_chartAllCandles.length) return;
   const candles = _chartAllCandles;
