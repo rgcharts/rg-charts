@@ -162,6 +162,39 @@ body {
 .sidebar-tab i { font-size: 18px; flex-shrink: 0; }
 .sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: #a5b4fc; margin-left: auto; flex-shrink: 0; opacity: 0; }
 .sidebar-tab.active .sidebar-dot { opacity: 1; }
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(99,102,241,0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar-drive-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(99,102,241,0.12);
+  transition: background 0.15s;
+  color: #c7d2fe;
+}
+.sidebar-drive-badge:hover { background: rgba(99,102,241,0.22); }
+.sidebar-auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(99,102,241,0.12);
+  color: #c7d2fe;
+}
+.sidebar-auth-badge img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+.sidebar-auth-badge span { font-size: 11px; font-weight: 600; color: #e0e7ff; }
+.sidebar-auth-badge button { background: none; border: none; font-size: 10px; color: rgba(199,210,254,0.6); cursor: pointer; padding: 0; font-family: inherit; }
+.sidebar-auth-badge button:hover { color: #c7d2fe; }
 
 /* ── MAIN LAYOUT ── */
 .main {
@@ -946,12 +979,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   </div>
 
   <div class="nav-right">
-    <div class="drive-badge" onclick="manualDriveSync()" title="Click to sync now" style="cursor:pointer;">
-      <span class="dot loading" id="driveDot"></span>
-      <span id="driveLabel" style="font-size:11px;">Connecting…</span>
-      <span id="driveLastSync" style="font-size:10px;color:var(--muted);margin-left:2px;"></span>
-    </div>
-    <div id="authBadge" style="display:flex;align-items:center;gap:7px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px 5px 8px;"></div>
     <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
       <i class="ti ti-moon" id="themeIcon"></i> <span id="themeLabel">Light</span>
     </button>
@@ -984,6 +1011,16 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   <button class="sidebar-tab" onclick="showTab('review',this);renderTradeReview()">
     <i class="ti ti-microscope"></i> <span>Trade Review</span> <span class="sidebar-dot"></span>
   </button>
+
+  <!-- Sidebar Footer -->
+  <div class="sidebar-footer">
+    <div class="sidebar-drive-badge" onclick="manualDriveSync()" title="Click to sync now">
+      <span class="dot loading" id="driveDot"></span>
+      <span id="driveLabel" style="font-size:11px;">Connecting…</span>
+      <span id="driveLastSync" style="font-size:10px;color:rgba(199,210,254,0.5);margin-left:2px;"></span>
+    </div>
+    <div id="authBadge" class="sidebar-auth-badge"></div>
+  </div>
 </aside>
 
 <!-- MAIN -->
@@ -1574,7 +1611,7 @@ function renderNavUser(user) {
     if (badge) badge.innerHTML = `
       <img src="${user.photoURL}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
       <span style="font-size:11px;font-weight:600;">${user.displayName?.split(" ")[0] || "User"}</span>
-      <button onclick="signOut()" style="background:none;border:none;font-size:10px;color:var(--muted);cursor:pointer;padding:0;font-family:inherit;">Sign out</button>`;
+      <button onclick="signOut()" style="background:none;border:none;font-size:10px;color:rgba(199,210,254,0.6);cursor:pointer;padding:0;font-family:inherit;">Sign out</button>`;
   } else {
     if (loginPage) { loginPage.style.display = "flex"; loginPage.style.opacity = "1"; }
     if (badge) badge.innerHTML = "";
