@@ -2750,12 +2750,23 @@ async function fetchAndRenderChart(scrip, dateStr, tfIdx) {
     const from    = to - 60 * 60 * 24 * tf.days;
     const ySymbol = scrip + ".NS";
     const url     = `https://query1.finance.yahoo.com/v8/finance/chart/${ySymbol}?period1=${from}&period2=${to}&interval=${tf.interval}`;
-    const proxy   = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
-    const res    = await fetch(proxy);
-    const json   = await res.json();
-    const result = JSON.parse(json.contents)?.chart?.result?.[0];
-    if (!result) throw new Error("No data");
+    const proxies = [
+      `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+    ];
+
+    let result = null;
+    for (const proxy of proxies) {
+      try {
+        const res  = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+        const json = await res.json();
+        const raw  = json.contents ? JSON.parse(json.contents) : json;
+        if (raw?.chart?.result?.[0]) { result = raw.chart.result[0]; break; }
+      } catch(e) { continue; }
+    }
+    if (!result) throw new Error("No data from any proxy");
 
     const timestamps = result.timestamp;
     const q = result.indicators.quote[0];
