@@ -1026,6 +1026,9 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 <!-- MAIN -->
 <main class="main">
 
+  <!-- Shared header — visible only on Dashboard & Trade Log -->
+  <div id="sharedHeaderBlock">
+
   <!-- Page header -->
   <div class="page-hd">
     <div class="page-hd-left">
@@ -1144,6 +1147,8 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div class="metric-num mut" id="mAvg">₹0</div>
     </div>
   </div>
+
+  </div><!-- /sharedHeaderBlock -->
 
   <!-- ── ANALYTICS PANEL ── -->
   <div id="panelAnalytics" class="panel active">
@@ -2144,6 +2149,10 @@ function showTab(tab, el) {
   const panelEl = document.getElementById("panel" + tab.charAt(0).toUpperCase() + tab.slice(1));
   if (panelEl) panelEl.classList.add("active");
   document.querySelectorAll(`[onclick*="'${tab}'"]`).forEach(el => el.classList.add("active"));
+
+  // Shared header (FY/Month selectors + metrics row) only shows on Dashboard & Trade Log
+  const headerBlock = document.getElementById("sharedHeaderBlock");
+  if (headerBlock) headerBlock.style.display = (tab === "analytics" || tab === "log") ? "" : "none";
 }
 
 function backupAllData() {
