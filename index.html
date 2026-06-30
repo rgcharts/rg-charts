@@ -710,6 +710,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
   .a-row-2, .a-row-3 { grid-template-columns: 1fr; }
   .selectors-row { grid-template-columns: 1fr; }
+  #fyStatsGrid { grid-template-columns: 1fr 1fr !important; }
   .sidebar { width: 56px; padding: 16px 6px; }
   .sidebar-tab span { display: none; }
   .sidebar-dot { display: none; }
@@ -1011,9 +1012,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   <button class="sidebar-tab" onclick="showTab('review',this);renderTradeReview()">
     <i class="ti ti-microscope"></i> <span>Trade Review</span> <span class="sidebar-dot"></span>
   </button>
-  <button class="sidebar-tab" onclick="showTab('charges',this);renderChargesSection()">
-    <i class="ti ti-receipt-2"></i> <span>Charges</span> <span class="sidebar-dot"></span>
-  </button>
 
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
@@ -1050,7 +1048,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         <option value="2035">FY 2034-35</option>
       </select>
     </div>
-    <div class="sel-card" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
+    <div class="sel-card" id="fyStatsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:center;">
       <div>
         <div class="sel-label">FY Capital (₹)</div>
         <input type="number" id="fyCapital" placeholder="e.g. 500000"
@@ -1064,6 +1062,12 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div>
         <div class="sel-label">FY Return</div>
         <div id="fyPnlPct" style="font-size:22px;font-weight:700;color:var(--muted);">—</div>
+      </div>
+      <div>
+        <div class="sel-label">Brokerage (₹)</div>
+        <input type="number" id="fyBrokerage" placeholder="0"
+          style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
+          oninput="onFYBrokerageChange()" />
       </div>
     </div>
   </div>
@@ -1438,58 +1442,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     </div>
   </div>
 
-  <!-- ── CHARGES PANEL ── -->
-  <div id="panelCharges" class="panel">
-    <div class="a-grid">
-      <div style="margin-bottom:4px;">
-        <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.4px;">Charges &amp; Taxes</div>
-        <div style="font-size:14px;color:var(--muted);margin-top:4px;">Verify net P&amp;L after brokerage, STT, and other charges for a custom date range.</div>
-      </div>
-
-      <div class="a-card" style="max-width:640px;">
-        <div style="margin-bottom:14px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="sel-card">
-              <div class="sel-label">From</div>
-              <input type="date" id="ctDateFrom" onchange="onCTRangeChange()"
-                style="width:100%;font-size:15px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;cursor:pointer;" />
-            </div>
-            <div class="sel-card">
-              <div class="sel-label">To</div>
-              <input type="date" id="ctDateTo" onchange="onCTRangeChange()"
-                style="width:100%;font-size:15px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;cursor:pointer;" />
-            </div>
-          </div>
-        </div>
-
-        <div id="ctResultWrap" style="display:none;">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;">
-            <div class="metric-card">
-              <div class="metric-lbl">Gross P&amp;L</div>
-              <div class="metric-num" id="ctGrossPnl">₹0</div>
-              <div style="font-size:12px;font-weight:700;margin-top:2px;" id="ctGrossPct"></div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-lbl">Charges</div>
-              <div style="margin-top:4px;">
-                <input type="number" id="ctChargesInput" placeholder="0" step="0.01" oninput="onCTChargesInput()"
-                  style="width:100%;font-size:18px;font-weight:800;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;outline:none;font-family:inherit;" />
-              </div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-lbl">Net P&amp;L</div>
-              <div class="metric-num" id="ctNetPnl">₹0</div>
-              <div style="font-size:12px;font-weight:700;margin-top:2px;" id="ctNetPct"></div>
-            </div>
-          </div>
-          <div id="ctTradeCount" style="font-size:12px;color:var(--muted);margin-bottom:2px;"></div>
-          <div id="ctCapitalNote" style="font-size:11px;color:var(--muted);margin-bottom:6px;"></div>
-          <div id="ctSavedNote" style="font-size:11px;color:var(--muted);"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </main>
 
 </div><!-- end .layout -->
@@ -1598,7 +1550,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:131451484373:web:02b315339f703db1390a5c"
 };
 
-let state = { months: {}, fyCapitals: {}, reviews: {}, charges: {} };
+let state = { months: {}, fyCapitals: {}, fyBrokerage: {}, reviews: {}, charges: {} };
 const _now = new Date();
 let currentMonth = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][_now.getMonth()] + " " + _now.getFullYear();
 let capital = 0;
@@ -1685,7 +1637,7 @@ async function signInWithGoogle() { loginWithGoogle(); }
 async function signOut() {
   if (!auth) return;
   await auth.signOut();
-  state = { months: {}, fyCapitals: {}, reviews: {}, charges: {} };
+  state = { months: {}, fyCapitals: {}, fyBrokerage: {}, reviews: {}, charges: {} };
   loadMonth(); renderCalendar(); updateFYStats();
   setDriveStatus("error", "Signed out");
   const lp = document.getElementById("loginPage");
@@ -1719,6 +1671,7 @@ async function loadFromFirebase() {
       const data = doc.data();
       state.months    = data.months    || {};
       state.fyCapitals = data.fyCapitals || {};
+      state.fyBrokerage = data.fyBrokerage || {};
       state.reviews   = data.reviews   || {};
       state.charges   = data.charges   || {};
       saveLocal();
@@ -1744,6 +1697,7 @@ async function saveToFirebase() {
     await db.collection("journals").doc(currentUser.uid).set({
       months:     state.months,
       fyCapitals: state.fyCapitals || {},
+      fyBrokerage: state.fyBrokerage || {},
       reviews:    state.reviews    || {},
       charges:    state.charges    || {},
       updatedAt:  new Date().toISOString()
@@ -1774,11 +1728,11 @@ function showFirebaseSetup() {
 }
 
 const LS_KEY = "rg_charts_journal";
-function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ months: state.months, fyCapitals: state.fyCapitals || {}, reviews: state.reviews || {}, charges: state.charges || {} })); } catch(e) {} }
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ months: state.months, fyCapitals: state.fyCapitals || {}, fyBrokerage: state.fyBrokerage || {}, reviews: state.reviews || {}, charges: state.charges || {} })); } catch(e) {} }
 function loadLocal() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) { const d = JSON.parse(raw); state.months = d.months || {}; state.fyCapitals = d.fyCapitals || {}; state.reviews = d.reviews || {}; state.charges = d.charges || {}; return true; }
+    if (raw) { const d = JSON.parse(raw); state.months = d.months || {}; state.fyCapitals = d.fyCapitals || {}; state.fyBrokerage = d.fyBrokerage || {}; state.reviews = d.reviews || {}; state.charges = d.charges || {}; return true; }
   } catch(e) {}
   return false;
 }
@@ -1855,6 +1809,14 @@ function onFYCapitalChange() {
   saveToDrive(); updateFYStats();
 }
 
+function onFYBrokerageChange() {
+  const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const val = parseFloat(document.getElementById("fyBrokerage").value) || 0;
+  if (!state.fyBrokerage) state.fyBrokerage = {};
+  state.fyBrokerage[fyEndYear] = val;
+  saveLocal(); saveToDrive(); updateFYStats();
+}
+
 function getFYMonths(fyEndYear) {
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const fyMonths = [];
@@ -1866,11 +1828,17 @@ function getFYMonths(fyEndYear) {
 function updateFYStats() {
   const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
   const fyMonths = getFYMonths(fyEndYear);
-  let fyTotalPnl = 0;
-  fyMonths.forEach(mk => { const m = state.months[mk]; if (!m) return; fyTotalPnl += (m.trades || []).reduce((s, t) => s + t.pnl, 0); });
+  let fyGrossPnl = 0;
+  fyMonths.forEach(mk => { const m = state.months[mk]; if (!m) return; fyGrossPnl += (m.trades || []).reduce((s, t) => s + t.pnl, 0); });
   const fyCap = state.fyCapitals?.[fyEndYear] || 0;
+  const fyBrokerage = state.fyBrokerage?.[fyEndYear] || 0;
+  const fyTotalPnl = fyGrossPnl - fyBrokerage;
+
   const inputEl = document.getElementById("fyCapital");
   if (inputEl && parseFloat(inputEl.value) !== fyCap) inputEl.value = fyCap || "";
+  const brokerageEl = document.getElementById("fyBrokerage");
+  if (brokerageEl && parseFloat(brokerageEl.value) !== fyBrokerage) brokerageEl.value = fyBrokerage || "";
+
   const fyPnlPct = fyCap ? (fyTotalPnl / fyCap) * 100 : 0;
   const pnlEl = document.getElementById("fyPnl"), pctEl = document.getElementById("fyPnlPct");
   pnlEl.textContent = fyTotalPnl !== 0 ? (fyTotalPnl >= 0 ? "+" : "") + "₹" + fmt(fyTotalPnl) : "—";
@@ -2212,6 +2180,7 @@ function backupAllData() {
   const payload = JSON.stringify({
     months: state.months,
     fyCapitals: state.fyCapitals || {},
+    fyBrokerage: state.fyBrokerage || {},
     reviews: state.reviews || {},
     charges: state.charges || {},
     driveFileId: state.driveFileId || null,
@@ -2245,6 +2214,8 @@ function restoreAllData(event) {
         }
       });
       Object.assign(state.fyCapitals, parsed.fyCapitals || {});
+      if (!state.fyBrokerage) state.fyBrokerage = {};
+      Object.assign(state.fyBrokerage, parsed.fyBrokerage || {});
       Object.assign(state.reviews,    parsed.reviews    || {});
       if (!state.charges) state.charges = {};
       Object.assign(state.charges,    parsed.charges    || {});
@@ -3452,113 +3423,6 @@ function populateReasonFilter() {
   const allReasons = [...new Set([...WIN_REASONS, ...LOSS_REASONS])].filter(r => r !== "Select reason…");
   const usedReasons = allReasons.filter(r => Object.values(state.reviews).some(rv => rv.reason === r));
   sel.innerHTML = '<option value="all">All reasons</option>' + usedReasons.map(r => `<option value="${r}" ${r===cur?"selected":""}>${r}</option>`).join("");
-}
-
-// ── CHARGES & TAXES ──
-function renderChargesSection() {
-  onCTRangeChange();
-}
-
-function getAllTradesFlat() {
-  return Object.values(state.months).flatMap(m => m.trades || []);
-}
-
-// Indian FY runs Apr–Mar. Given a date, return the FY "end year" used as the
-// key in state.fyCapitals (e.g. Apr 2025–Mar 2026 -> fyEndYear 2026).
-function getFYEndYearForDate(d) {
-  const mi = d.getMonth(); // 0=Jan ... 11=Dec
-  return (mi <= 2) ? d.getFullYear() : d.getFullYear() + 1;
-}
-
-function onCTRangeChange() {
-  const from = document.getElementById("ctDateFrom").value;
-  const to   = document.getElementById("ctDateTo").value;
-  const wrap = document.getElementById("ctResultWrap");
-  if (!from || !to) { wrap.style.display = "none"; return; }
-  wrap.style.display = "block";
-
-  const fromD = new Date(from + "T00:00:00");
-  const toD   = new Date(to + "T23:59:59");
-  const trades = getAllTradesFlat().filter(t => {
-    if (!t.date) return false;
-    const td = new Date(t.date + "T00:00:00");
-    return td >= fromD && td <= toD;
-  });
-  const gross = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-  const chargeKey = "range:" + from + "|" + to;
-
-  // Base capital = FY capital of the FY the range's start date falls in
-  const fyEndYear = getFYEndYearForDate(fromD);
-  const baseCapital = state.fyCapitals?.[fyEndYear] || 0;
-
-  document.getElementById("ctGrossPnl").textContent = (gross >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(gross));
-  document.getElementById("ctGrossPnl").style.color = gross >= 0 ? "var(--green)" : "var(--red)";
-  document.getElementById("ctTradeCount").textContent = trades.length + (trades.length === 1 ? " trade" : " trades") + " in this period";
-
-  const capNote = document.getElementById("ctCapitalNote");
-  capNote.textContent = baseCapital
-    ? `% based on FY ${fyEndYear - 1}-${String(fyEndYear).slice(2)} capital of ₹${fmt(baseCapital)}`
-    : `No FY capital set for FY ${fyEndYear - 1}-${String(fyEndYear).slice(2)} — % will show as N/A`;
-
-  if (!state.charges) state.charges = {};
-  const savedCharge = state.charges[chargeKey] ?? "";
-  const input = document.getElementById("ctChargesInput");
-  input.value = savedCharge;
-  input.dataset.chargeKey = chargeKey;
-  input.dataset.baseCapital = baseCapital;
-
-  updateCTPctAndNet(gross, baseCapital);
-}
-
-function onCTChargesInput() {
-  const input = document.getElementById("ctChargesInput");
-  const chargeKey = input.dataset.chargeKey;
-  if (!chargeKey) return;
-  const val = parseFloat(input.value) || 0;
-  if (!state.charges) state.charges = {};
-  state.charges[chargeKey] = val;
-  saveLocal(); saveToDrive();
-
-  const [from, to] = chargeKey.slice(6).split("|");
-  const fromD = new Date(from + "T00:00:00"), toD = new Date(to + "T23:59:59");
-  const gross = getAllTradesFlat().filter(t => {
-    if (!t.date) return false;
-    const td = new Date(t.date + "T00:00:00");
-    return td >= fromD && td <= toD;
-  }).reduce((s, t) => s + (t.pnl || 0), 0);
-
-  const baseCapital = parseFloat(input.dataset.baseCapital) || 0;
-  updateCTPctAndNet(gross, baseCapital);
-
-  const note = document.getElementById("ctSavedNote");
-  note.textContent = "Saved ✓";
-  clearTimeout(window._ctSaveTimer);
-  window._ctSaveTimer = setTimeout(() => { note.textContent = ""; }, 1500);
-}
-
-function updateCTPctAndNet(gross, baseCapital) {
-  const charges = parseFloat(document.getElementById("ctChargesInput").value) || 0;
-  const net = gross - charges;
-
-  const netEl = document.getElementById("ctNetPnl");
-  netEl.textContent = (net >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(net));
-  netEl.style.color = net >= 0 ? "var(--green)" : "var(--red)";
-
-  const grossPctEl = document.getElementById("ctGrossPct");
-  const netPctEl   = document.getElementById("ctNetPct");
-  if (baseCapital > 0) {
-    const grossPct = (gross / baseCapital) * 100;
-    const netPct   = (net / baseCapital) * 100;
-    grossPctEl.textContent = (grossPct >= 0 ? "+" : "") + grossPct.toFixed(2) + "%";
-    grossPctEl.style.color = grossPct >= 0 ? "var(--green)" : "var(--red)";
-    netPctEl.textContent = (netPct >= 0 ? "+" : "") + netPct.toFixed(2) + "%";
-    netPctEl.style.color = netPct >= 0 ? "var(--green)" : "var(--red)";
-  } else {
-    grossPctEl.textContent = "N/A";
-    grossPctEl.style.color = "var(--muted)";
-    netPctEl.textContent = "N/A";
-    netPctEl.style.color = "var(--muted)";
-  }
 }
 
 function renderTradeReview() {
