@@ -2468,15 +2468,22 @@ const zeroLinePlugin = {
 function buildEquityCfg(labels, pnlData, height) {
   const lastVal = pnlData[pnlData.length - 1] || 0;
   const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
+  const GREEN = "#10b981", RED = "#ef4444";
+  const GREEN_FILL = "rgba(16,185,129,0.20)", RED_FILL = "rgba(239,68,68,0.16)";
   return {
     type: "line", data: { labels, datasets: [{
       label: "Equity", data: pnlData, borderColor: lineColor, borderWidth: 2,
-      pointRadius: pnlData.length > 30 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: lineColor,
+      pointRadius: pnlData.length > 30 ? 0 : 3, pointHoverRadius: 5,
+      pointBackgroundColor: ctx => (ctx.raw ?? 0) >= 0 ? GREEN : RED,
       fill: true,
       backgroundColor: (ctx) => {
         const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, height || 160);
         g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.20)" : "rgba(239,68,68,0.16)");
         g.addColorStop(1, "rgba(0,0,0,0)"); return g;
+      },
+      segment: {
+        borderColor: ctx => (ctx.p0.parsed.y >= 0 && ctx.p1.parsed.y >= 0) ? GREEN : (ctx.p0.parsed.y < 0 && ctx.p1.parsed.y < 0) ? RED : undefined,
+        backgroundColor: ctx => (ctx.p0.parsed.y >= 0 && ctx.p1.parsed.y >= 0) ? GREEN_FILL : (ctx.p0.parsed.y < 0 && ctx.p1.parsed.y < 0) ? RED_FILL : undefined,
       },
       tension: 0
     }]},
@@ -2552,15 +2559,23 @@ function renderMonthCurve() {
   // Month chart keeps combined view (equity + DD overlay)
   const lastVal = equity[equity.length - 1] || 0;
   const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
+  const GREEN = "#10b981", RED = "#ef4444";
+  const GREEN_FILL = "rgba(16,185,129,0.18)", RED_FILL = "rgba(239,68,68,0.15)";
   const datasets = [{
     label: "Equity", data: equity, borderColor: lineColor, borderWidth: 2,
-    pointRadius: equity.length > 30 ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: lineColor,
+    pointRadius: equity.length > 30 ? 0 : 3, pointHoverRadius: 5,
+    pointBackgroundColor: ctx2 => (ctx2.raw ?? 0) >= 0 ? GREEN : RED,
     fill: true,
     backgroundColor: (ctx2) => {
       const g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 160);
       g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.18)" : "rgba(239,68,68,0.15)");
       g.addColorStop(1, "rgba(0,0,0,0)"); return g;
-    }, tension: 0, yAxisID: "y"
+    },
+    segment: {
+      borderColor: ctx2 => (ctx2.p0.parsed.y >= 0 && ctx2.p1.parsed.y >= 0) ? GREEN : (ctx2.p0.parsed.y < 0 && ctx2.p1.parsed.y < 0) ? RED : undefined,
+      backgroundColor: ctx2 => (ctx2.p0.parsed.y >= 0 && ctx2.p1.parsed.y >= 0) ? GREEN_FILL : (ctx2.p0.parsed.y < 0 && ctx2.p1.parsed.y < 0) ? RED_FILL : undefined,
+    },
+    tension: 0, yAxisID: "y"
   }];
   if (dd.some(v => v > 0)) {
     datasets.push({ label: "Drawdown", data: dd.map(v => -v), borderColor: "rgba(239,68,68,0.5)", borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: "rgba(239,68,68,0.07)", tension: 0, yAxisID: "y2" });
