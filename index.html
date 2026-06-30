@@ -1011,6 +1011,9 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   <button class="sidebar-tab" onclick="showTab('review',this);renderTradeReview()">
     <i class="ti ti-microscope"></i> <span>Trade Review</span> <span class="sidebar-dot"></span>
   </button>
+  <button class="sidebar-tab" onclick="showTab('charges',this);renderChargesSection()">
+    <i class="ti ti-receipt-2"></i> <span>Charges</span> <span class="sidebar-dot"></span>
+  </button>
 
   <!-- Sidebar Footer -->
   <div class="sidebar-footer">
@@ -1432,12 +1435,18 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div id="reviewCumStat" style="display:none;margin-bottom:14px;padding:12px 18px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;gap:16px;flex-wrap:wrap;"></div>
       <div id="reviewReasonBreakdown" style="display:none;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
       <div id="reviewCards"></div>
+    </div>
+  </div>
 
-      <!-- Charges & Taxes -->
-      <div class="a-card" style="max-width:640px;margin-top:24px;">
-        <div class="a-card-title"><span>Charges &amp; Taxes</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Verify net P&amp;L after brokerage, STT, and other charges for a month.</div>
+  <!-- ── CHARGES PANEL ── -->
+  <div id="panelCharges" class="panel">
+    <div class="a-grid">
+      <div style="margin-bottom:4px;">
+        <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.4px;">Charges &amp; Taxes</div>
+        <div style="font-size:14px;color:var(--muted);margin-top:4px;">Verify net P&amp;L after brokerage, STT, and other charges for a month.</div>
+      </div>
 
+      <div class="a-card" style="max-width:640px;">
         <div class="sel-card" style="margin-bottom:14px;">
           <div class="sel-label">Select Month</div>
           <select id="ctMonthSelect" onchange="onCTMonthChange()" style="width:100%;font-size:16px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
@@ -3434,6 +3443,9 @@ function populateReasonFilter() {
 }
 
 // ── CHARGES & TAXES ──
+function renderChargesSection() {
+  populateCTMonthSelect();
+}
 function populateCTMonthSelect() {
   const sel = document.getElementById("ctMonthSelect");
   if (!sel) return;
@@ -3489,7 +3501,6 @@ function updateCTNetPnl(gross) {
 function renderTradeReview() {
   populateMonthFilter();
   populateReasonFilter();
-  populateCTMonthSelect();
   const filter       = document.getElementById("reviewFilter")?.value || "all";
   const mFilter      = document.getElementById("reviewMonthFilter")?.value || "all";
   const reasonFilter = document.getElementById("reviewReasonFilter")?.value || "all";
