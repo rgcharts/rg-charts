@@ -1029,15 +1029,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   <!-- Shared header — visible only on Dashboard & Trade Log -->
   <div id="sharedHeaderBlock">
 
-  <!-- Page header -->
-  <div class="page-hd">
-    <div class="page-hd-left">
-      <div class="page-hd-eyebrow">Performance Dashboard</div>
-      <div class="page-hd-title">Trading Journal</div>
-      <div class="page-hd-sub" id="pageSubtitle">Loading…</div>
-    </div>
-  </div>
-
   <!-- FY Row -->
   <div class="selectors-row" style="margin-bottom:12px">
     <div class="sel-card">
@@ -1838,7 +1829,7 @@ function loadMonth() {
   const m = state.months[currentMonth];
   capital = m ? (m.capital || 0) : 0;
   document.getElementById("monthCapital").value = capital || "";
-  document.getElementById("pageSubtitle").textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
+  const _psEl = document.getElementById("pageSubtitle"); if (_psEl) _psEl.textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
   renderTrades(); updateMetrics(); updateFYStats();
 }
 
@@ -2037,7 +2028,7 @@ function updateMetrics() {
 
   renderBars(trades);
   if (document.getElementById("panelAnalytics").classList.contains("active")) renderCalendar();
-  document.getElementById("pageSubtitle").textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
+  const _psEl = document.getElementById("pageSubtitle"); if (_psEl) _psEl.textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
 
   const sharpeEl = document.getElementById("mSharpe");
   if (trades.length >= 2) {
