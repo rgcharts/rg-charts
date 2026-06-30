@@ -1443,29 +1443,11 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     <div class="a-grid">
       <div style="margin-bottom:4px;">
         <div style="font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.4px;">Charges &amp; Taxes</div>
-        <div style="font-size:14px;color:var(--muted);margin-top:4px;">Verify net P&amp;L after brokerage, STT, and other charges for a month or custom date range.</div>
+        <div style="font-size:14px;color:var(--muted);margin-top:4px;">Verify net P&amp;L after brokerage, STT, and other charges for a custom date range.</div>
       </div>
 
       <div class="a-card" style="max-width:640px;">
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-          <button id="ctModeMonthBtn" onclick="setCTMode('month')"
-            style="flex:1;padding:8px 14px;border-radius:8px;border:1px solid var(--border2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--accent2);color:#fff;transition:all 0.15s;">
-            Single Month
-          </button>
-          <button id="ctModeRangeBtn" onclick="setCTMode('range')"
-            style="flex:1;padding:8px 14px;border-radius:8px;border:1px solid var(--border2);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--surface2);color:var(--muted);transition:all 0.15s;">
-            Date Range
-          </button>
-        </div>
-
-        <div id="ctMonthModeWrap" class="sel-card" style="margin-bottom:14px;">
-          <div class="sel-label">Select Month</div>
-          <select id="ctMonthSelect" onchange="onCTMonthChange()" style="width:100%;font-size:16px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
-            <option value="">Choose a month…</option>
-          </select>
-        </div>
-
-        <div id="ctRangeModeWrap" style="display:none;margin-bottom:14px;">
+        <div style="margin-bottom:14px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="sel-card">
               <div class="sel-label">From</div>
@@ -1485,6 +1467,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <div class="metric-card">
               <div class="metric-lbl">Gross P&amp;L</div>
               <div class="metric-num" id="ctGrossPnl">₹0</div>
+              <div style="font-size:12px;font-weight:700;margin-top:2px;" id="ctGrossPct"></div>
             </div>
             <div class="metric-card">
               <div class="metric-lbl">Charges</div>
@@ -1496,9 +1479,11 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <div class="metric-card">
               <div class="metric-lbl">Net P&amp;L</div>
               <div class="metric-num" id="ctNetPnl">₹0</div>
+              <div style="font-size:12px;font-weight:700;margin-top:2px;" id="ctNetPct"></div>
             </div>
           </div>
-          <div id="ctTradeCount" style="font-size:12px;color:var(--muted);margin-bottom:6px;"></div>
+          <div id="ctTradeCount" style="font-size:12px;color:var(--muted);margin-bottom:2px;"></div>
+          <div id="ctCapitalNote" style="font-size:11px;color:var(--muted);margin-bottom:6px;"></div>
           <div id="ctSavedNote" style="font-size:11px;color:var(--muted);"></div>
         </div>
       </div>
@@ -3470,56 +3455,19 @@ function populateReasonFilter() {
 }
 
 // ── CHARGES & TAXES ──
-let ctMode = "month"; // 'month' | 'range'
-
 function renderChargesSection() {
-  populateCTMonthSelect();
-  setCTMode(ctMode);
-}
-
-function setCTMode(mode) {
-  ctMode = mode;
-  const monthBtn = document.getElementById("ctModeMonthBtn");
-  const rangeBtn = document.getElementById("ctModeRangeBtn");
-  const monthWrap = document.getElementById("ctMonthModeWrap");
-  const rangeWrap = document.getElementById("ctRangeModeWrap");
-  if (mode === "month") {
-    monthBtn.style.background = "var(--accent2)"; monthBtn.style.color = "#fff";
-    rangeBtn.style.background = "var(--surface2)"; rangeBtn.style.color = "var(--muted)";
-    monthWrap.style.display = "block";
-    rangeWrap.style.display = "none";
-    onCTMonthChange();
-  } else {
-    rangeBtn.style.background = "var(--accent2)"; rangeBtn.style.color = "#fff";
-    monthBtn.style.background = "var(--surface2)"; monthBtn.style.color = "var(--muted)";
-    rangeWrap.style.display = "block";
-    monthWrap.style.display = "none";
-    onCTRangeChange();
-  }
-}
-
-function populateCTMonthSelect() {
-  const sel = document.getElementById("ctMonthSelect");
-  if (!sel) return;
-  const months = Object.keys(state.months).filter(mk => (state.months[mk].trades || []).length > 0);
-  months.sort((a, b) => new Date("01 " + b) - new Date("01 " + a));
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">Choose a month…</option>' + months.map(m => `<option value="${m}" ${m===cur?"selected":""}>${m}</option>`).join("");
+  onCTRangeChange();
 }
 
 function getAllTradesFlat() {
   return Object.values(state.months).flatMap(m => m.trades || []);
 }
 
-function onCTMonthChange() {
-  const month = document.getElementById("ctMonthSelect").value;
-  const wrap  = document.getElementById("ctResultWrap");
-  if (!month) { wrap.style.display = "none"; return; }
-  wrap.style.display = "block";
-
-  const trades = state.months[month]?.trades || [];
-  const gross = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-  renderCTResult(gross, trades.length, "month:" + month);
+// Indian FY runs Apr–Mar. Given a date, return the FY "end year" used as the
+// key in state.fyCapitals (e.g. Apr 2025–Mar 2026 -> fyEndYear 2026).
+function getFYEndYearForDate(d) {
+  const mi = d.getMonth(); // 0=Jan ... 11=Dec
+  return (mi <= 2) ? d.getFullYear() : d.getFullYear() + 1;
 }
 
 function onCTRangeChange() {
@@ -3537,21 +3485,29 @@ function onCTRangeChange() {
     return td >= fromD && td <= toD;
   });
   const gross = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-  renderCTResult(gross, trades.length, "range:" + from + "|" + to);
-}
+  const chargeKey = "range:" + from + "|" + to;
 
-function renderCTResult(gross, tradeCount, chargeKey) {
+  // Base capital = FY capital of the FY the range's start date falls in
+  const fyEndYear = getFYEndYearForDate(fromD);
+  const baseCapital = state.fyCapitals?.[fyEndYear] || 0;
+
   document.getElementById("ctGrossPnl").textContent = (gross >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(gross));
   document.getElementById("ctGrossPnl").style.color = gross >= 0 ? "var(--green)" : "var(--red)";
-  document.getElementById("ctTradeCount").textContent = tradeCount + (tradeCount === 1 ? " trade" : " trades") + " in this period";
+  document.getElementById("ctTradeCount").textContent = trades.length + (trades.length === 1 ? " trade" : " trades") + " in this period";
+
+  const capNote = document.getElementById("ctCapitalNote");
+  capNote.textContent = baseCapital
+    ? `% based on FY ${fyEndYear - 1}-${String(fyEndYear).slice(2)} capital of ₹${fmt(baseCapital)}`
+    : `No FY capital set for FY ${fyEndYear - 1}-${String(fyEndYear).slice(2)} — % will show as N/A`;
 
   if (!state.charges) state.charges = {};
   const savedCharge = state.charges[chargeKey] ?? "";
   const input = document.getElementById("ctChargesInput");
   input.value = savedCharge;
   input.dataset.chargeKey = chargeKey;
+  input.dataset.baseCapital = baseCapital;
 
-  updateCTNetPnl(gross);
+  updateCTPctAndNet(gross, baseCapital);
 }
 
 function onCTChargesInput() {
@@ -3563,21 +3519,16 @@ function onCTChargesInput() {
   state.charges[chargeKey] = val;
   saveLocal(); saveToDrive();
 
-  // Recompute gross from the currently active mode (cheap — reuses existing logic)
-  let gross = 0;
-  if (chargeKey.startsWith("month:")) {
-    const month = chargeKey.slice(6);
-    gross = (state.months[month]?.trades || []).reduce((s, t) => s + (t.pnl || 0), 0);
-  } else if (chargeKey.startsWith("range:")) {
-    const [from, to] = chargeKey.slice(6).split("|");
-    const fromD = new Date(from + "T00:00:00"), toD = new Date(to + "T23:59:59");
-    gross = getAllTradesFlat().filter(t => {
-      if (!t.date) return false;
-      const td = new Date(t.date + "T00:00:00");
-      return td >= fromD && td <= toD;
-    }).reduce((s, t) => s + (t.pnl || 0), 0);
-  }
-  updateCTNetPnl(gross);
+  const [from, to] = chargeKey.slice(6).split("|");
+  const fromD = new Date(from + "T00:00:00"), toD = new Date(to + "T23:59:59");
+  const gross = getAllTradesFlat().filter(t => {
+    if (!t.date) return false;
+    const td = new Date(t.date + "T00:00:00");
+    return td >= fromD && td <= toD;
+  }).reduce((s, t) => s + (t.pnl || 0), 0);
+
+  const baseCapital = parseFloat(input.dataset.baseCapital) || 0;
+  updateCTPctAndNet(gross, baseCapital);
 
   const note = document.getElementById("ctSavedNote");
   note.textContent = "Saved ✓";
@@ -3585,12 +3536,29 @@ function onCTChargesInput() {
   window._ctSaveTimer = setTimeout(() => { note.textContent = ""; }, 1500);
 }
 
-function updateCTNetPnl(gross) {
+function updateCTPctAndNet(gross, baseCapital) {
   const charges = parseFloat(document.getElementById("ctChargesInput").value) || 0;
   const net = gross - charges;
+
   const netEl = document.getElementById("ctNetPnl");
   netEl.textContent = (net >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(net));
   netEl.style.color = net >= 0 ? "var(--green)" : "var(--red)";
+
+  const grossPctEl = document.getElementById("ctGrossPct");
+  const netPctEl   = document.getElementById("ctNetPct");
+  if (baseCapital > 0) {
+    const grossPct = (gross / baseCapital) * 100;
+    const netPct   = (net / baseCapital) * 100;
+    grossPctEl.textContent = (grossPct >= 0 ? "+" : "") + grossPct.toFixed(2) + "%";
+    grossPctEl.style.color = grossPct >= 0 ? "var(--green)" : "var(--red)";
+    netPctEl.textContent = (netPct >= 0 ? "+" : "") + netPct.toFixed(2) + "%";
+    netPctEl.style.color = netPct >= 0 ? "var(--green)" : "var(--red)";
+  } else {
+    grossPctEl.textContent = "N/A";
+    grossPctEl.style.color = "var(--muted)";
+    netPctEl.textContent = "N/A";
+    netPctEl.style.color = "var(--muted)";
+  }
 }
 
 function renderTradeReview() {
