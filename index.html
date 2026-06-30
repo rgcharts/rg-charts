@@ -1169,7 +1169,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
       </div>
 
-      <div class="a-row a-row-2">
+      <div class="a-row a-row-3">
         <div class="a-card">
           <div class="a-card-title">
             <span>P&amp;L Calendar</span>
@@ -1185,6 +1185,10 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <div class="cal-dow week-header">Week</div>
           </div>
           <div class="cal-days" id="calDaysGrid"></div>
+        </div>
+        <div class="a-card" style="display:flex;flex-direction:column;">
+          <div class="a-card-title"><span>Daily P&amp;L</span></div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:160px;"><canvas id="chartDailyPnl"></canvas></div>
         </div>
         <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title"><span>Equity curve — month</span></div>
@@ -2408,9 +2412,10 @@ function renderCalendar() {
     }
   }
   document.getElementById("calDaysGrid").innerHTML = html;
+  renderDailyPnlChart();
 }
 
-let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null;
+let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null;
 
 function buildEquityCfg(labels, pnlData, height) {
   const lastVal = pnlData[pnlData.length - 1] || 0;
@@ -2524,6 +2529,63 @@ function renderMonthCurve() {
         x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { color: "rgba(255,255,255,0.04)" }, border: { display: false } },
         y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => "₹"+(Math.abs(v)>=100000?(v/100000).toFixed(1)+"L":Math.abs(v)>=1000?(v/1000).toFixed(0)+"K":v.toFixed(0)) }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } },
         ...(datasets.length > 1 ? { y2: { position: "right", ticks: { color: "rgba(239,68,68,0.5)", font: { size: 9 }, callback: v => { const a=Math.abs(v); return "₹"+(a>=100000?(a/100000).toFixed(1)+"L":a>=1000?(a/1000).toFixed(0)+"K":a.toFixed(0)); } }, grid: { display: false }, border: { display: false } } } : {})
+      }
+    }
+  });
+}
+
+function renderDailyPnlChart() {
+  // Mirror the P&L Calendar's month + day-grouping logic so the bar chart
+  // always reflects the same month currently shown in the calendar widget.
+  const d = getCalMonth();
+  const year = d.getFullYear(), month = d.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const trades = Object.values(state.months).flatMap(m => m.trades || []);
+  const dayMap = {};
+  trades.forEach(t => {
+    if (!t.date) return;
+    const td = new Date(t.date);
+    if (td.getFullYear() === year && td.getMonth() === month) {
+      dayMap[t.date] = (dayMap[t.date] || 0) + t.pnl;
+    }
+  });
+
+  const labels = [], values = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
+    if (dayMap[ds] !== undefined) {
+      labels.push(String(day));
+      values.push(parseFloat(dayMap[ds].toFixed(2)));
+    }
+  }
+
+  const ctx = document.getElementById("chartDailyPnl")?.getContext("2d"); if (!ctx) return;
+  if (chartDailyPnlInst) chartDailyPnlInst.destroy();
+
+  const colors = values.map(v => v >= 0 ? "#10b981" : "#ef4444");
+  const colorsHover = values.map(v => v >= 0 ? "#34d399" : "#f87171");
+
+  chartDailyPnlInst = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{
+      label: "P&L", data: values,
+      backgroundColor: colors, hoverBackgroundColor: colorsHover,
+      borderRadius: 3, borderSkipped: false, maxBarThickness: 22,
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
+          titleColor: "#6b7280", bodyColor: "#f0f2f5", titleFont: { size: 10 }, bodyFont: { size: 12, weight: "600" },
+          callbacks: { label: ctx2 => "₹" + ctx2.raw.toLocaleString("en-IN") }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 15 }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => "₹"+(Math.abs(v)>=100000?(v/100000).toFixed(1)+"L":Math.abs(v)>=1000?(v/1000).toFixed(0)+"K":v.toFixed(0)) }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } }
       }
     }
   });
