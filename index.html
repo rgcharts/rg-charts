@@ -2954,16 +2954,14 @@ function renderSummary() {
   MONTH_LABELS.forEach(ml => { hmHtml += `<div class="fy-hm-header">${ml}</div>`; });
   hmHtml += `<div class="fy-hm-label">Capital</div>`;
   monthRows.forEach(r => {
-    const v = r.cap >= 100000 ? (r.cap / 100000).toFixed(1) + 'L' : r.cap >= 1000 ? (r.cap / 1000).toFixed(0) + 'K' : r.cap ? r.cap.toFixed(0) : '—';
-    hmHtml += `<div class="fy-hm-cell no-data" style="font-size:11px;font-weight:700;color:var(--text2)" title="${r.mk}: ₹${fmt(r.cap)}">${r.cap ? '₹' + v : '—'}</div>`;
+    hmHtml += `<div class="fy-hm-cell no-data" style="font-size:11px;font-weight:700;color:var(--text2)" title="${r.mk}: ₹${fmt(r.cap)}">${r.cap ? '₹' + fmt(r.cap) : '—'}</div>`;
   });
   hmHtml += `<div class="fy-hm-label">P&L</div>`;
   monthRows.forEach(r => {
     if (!r.trades.length) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; }
     const strength = Math.abs(r.pnl) / maxAbsPnl > 0.5 ? ' strong' : '';
     const cls = r.pnl >= 0 ? `profit${strength}` : `loss${strength}`;
-    const v = Math.abs(r.pnl) >= 100000 ? (r.pnl / 100000).toFixed(1) + 'L' : Math.abs(r.pnl) >= 1000 ? (r.pnl / 1000).toFixed(0) + 'K' : r.pnl.toFixed(0);
-    hmHtml += `<div class="fy-hm-cell ${cls}" title="${r.mk}: ₹${fmt(r.pnl)}">${r.pnl >= 0 ? '+' : ''}${v}</div>`;
+    hmHtml += `<div class="fy-hm-cell ${cls}" style="font-size:12px;" title="${r.mk}: ₹${fmt(r.pnl)}">${r.pnl >= 0 ? '+' : ''}₹${fmt(r.pnl)}</div>`;
   });
   hmHtml += `<div class="fy-hm-label">P&L %</div>`;
   monthRows.forEach(r => { if (!r.trades.length || r.pnlPct === null) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; } const cls = r.pnlPct >= 0 ? 'profit' : 'loss'; hmHtml += `<div class="fy-hm-cell ${cls}">${r.pnlPct >= 0 ? '+' : ''}${r.pnlPct.toFixed(1)}%</div>`; });
