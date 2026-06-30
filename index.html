@@ -996,11 +996,11 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
-  <button class="sidebar-tab active" onclick="showTab('log',this)">
-    <i class="ti ti-file-text"></i> <span>Trade log</span> <span class="sidebar-dot"></span>
+  <button class="sidebar-tab active" onclick="showTab('analytics',this);onAnalyticsOpen()">
+    <i class="ti ti-chart-bar"></i> <span>Dashboard</span> <span class="sidebar-dot"></span>
   </button>
-  <button class="sidebar-tab" onclick="showTab('analytics',this);onAnalyticsOpen()">
-    <i class="ti ti-chart-bar"></i> <span>Analytics</span> <span class="sidebar-dot"></span>
+  <button class="sidebar-tab" onclick="showTab('log',this)">
+    <i class="ti ti-file-text"></i> <span>Trade log</span> <span class="sidebar-dot"></span>
   </button>
   <button class="sidebar-tab" onclick="showTab('summary',this);onSummaryOpen()">
     <i class="ti ti-calendar-stats"></i> <span>Summary</span> <span class="sidebar-dot"></span>
@@ -1145,82 +1145,8 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     </div>
   </div>
 
-  <!-- ── TRADE LOG PANEL ── -->
-  <div id="panelLog" class="panel active">
-    <div class="form-card">
-      <div class="form-title">New trade entry</div>
-      <div class="form-grid">
-        <div class="form-field"><label>Scrip name</label><input type="text" id="fScrip" placeholder="RELIANCE" style="text-transform:uppercase" /></div>
-        <div class="form-field"><label>Entry type</label>
-          <select id="fType"><option value="BTST">BTST</option><option value="INTRA">INTRA</option><option value="SWING">SWING</option></select>
-        </div>
-        <div class="form-field"><label>Bought at (₹)</label><input type="number" id="fBuy" placeholder="0.00" oninput="recalc()" /></div>
-        <div class="form-field"><label>Qty</label><input type="number" id="fQty" placeholder="0" oninput="recalc()" /></div>
-        <div class="form-field"><label>Invested (₹)</label><div class="computed" id="cInvested">—</div></div>
-        <div class="form-field"><label>% on portfolio</label><div class="computed" id="cPfPct">—</div></div>
-        <div class="form-field"><label>Sold at (₹)</label><input type="number" id="fSell" placeholder="0.00" oninput="recalc()" /></div>
-        <div class="form-field"><label>Sold on</label><input type="date" id="fDate" /></div>
-        <div class="form-field"><label>P&amp;L (₹)</label><div class="computed" id="cPnl">—</div></div>
-        <div class="form-field"><label>P&amp;L %</label><div class="computed" id="cPnlPct">—</div></div>
-        <div class="form-field"><label>Impact on PF-M</label><div class="computed" id="cImpact">—</div></div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-primary" onclick="addTrade()"><i class="ti ti-plus"></i> Add trade</button>
-        <span class="status-msg" id="saveStatus"></span>
-      </div>
-    </div>
-
-    <!-- Filter bar -->
-    <div class="filter-bar" id="filterBar">
-      <span class="filter-bar-label"><i class="ti ti-filter" style="font-size:12px;vertical-align:middle;margin-right:3px"></i> Filter</span>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--muted)">Sold on</span>
-        <input type="date" id="filterDateFrom" title="From date" onchange="applyFiltersAndRender()" />
-        <span style="font-size:11px;color:var(--muted)">→</span>
-        <input type="date" id="filterDateTo" title="To date" onchange="applyFiltersAndRender()" />
-      </div>
-      <div class="filter-sep"></div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--muted)">P&amp;L</span>
-        <select id="filterPnlType" onchange="applyFiltersAndRender()">
-          <option value="all">All</option>
-          <option value="profit">Profit only</option>
-          <option value="loss">Loss only</option>
-        </select>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="number" id="filterPnlMin" placeholder="Min ₹" oninput="applyFiltersAndRender()" />
-        <span style="font-size:11px;color:var(--muted)">to</span>
-        <input type="number" id="filterPnlMax" placeholder="Max ₹" oninput="applyFiltersAndRender()" />
-      </div>
-      <div class="filter-sep"></div>
-      <span class="filter-active-badge" id="filterActiveBadge"></span>
-      <button class="btn btn-sm" onclick="clearFilters()" style="color:var(--muted)"><i class="ti ti-x" style="font-size:12px"></i> Clear</button>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Scrip</th><th>Type</th><th>Bought at</th><th>Qty</th>
-            <th>Invested ₹</th><th>% PF</th><th>Sold at</th>
-            <th class="sortable" id="thDate" onclick="toggleSort('date')">Sold on <span class="sort-icon"></span></th>
-            <th class="sortable" id="thPnl" onclick="toggleSort('pnl')">P&amp;L ₹ <span class="sort-icon"></span></th>
-            <th>P&amp;L %</th><th>PF Impact %</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="tradeBody">
-          <tr><td colspan="12" class="empty-state">
-            <i class="ti ti-chart-candle"></i>
-            <p>No trades this month. Add your first trade above.</p>
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- ── ANALYTICS PANEL ── -->
-  <div id="panelAnalytics" class="panel">
+  <div id="panelAnalytics" class="panel active">
     <div class="a-grid">
 
       <div class="a-row a-row-3">
@@ -1301,6 +1227,80 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ── TRADE LOG PANEL ── -->
+  <div id="panelLog" class="panel">
+    <div class="form-card">
+      <div class="form-title">New trade entry</div>
+      <div class="form-grid">
+        <div class="form-field"><label>Scrip name</label><input type="text" id="fScrip" placeholder="RELIANCE" style="text-transform:uppercase" /></div>
+        <div class="form-field"><label>Entry type</label>
+          <select id="fType"><option value="BTST">BTST</option><option value="INTRA">INTRA</option><option value="SWING">SWING</option></select>
+        </div>
+        <div class="form-field"><label>Bought at (₹)</label><input type="number" id="fBuy" placeholder="0.00" oninput="recalc()" /></div>
+        <div class="form-field"><label>Qty</label><input type="number" id="fQty" placeholder="0" oninput="recalc()" /></div>
+        <div class="form-field"><label>Invested (₹)</label><div class="computed" id="cInvested">—</div></div>
+        <div class="form-field"><label>% on portfolio</label><div class="computed" id="cPfPct">—</div></div>
+        <div class="form-field"><label>Sold at (₹)</label><input type="number" id="fSell" placeholder="0.00" oninput="recalc()" /></div>
+        <div class="form-field"><label>Sold on</label><input type="date" id="fDate" /></div>
+        <div class="form-field"><label>P&amp;L (₹)</label><div class="computed" id="cPnl">—</div></div>
+        <div class="form-field"><label>P&amp;L %</label><div class="computed" id="cPnlPct">—</div></div>
+        <div class="form-field"><label>Impact on PF-M</label><div class="computed" id="cImpact">—</div></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addTrade()"><i class="ti ti-plus"></i> Add trade</button>
+        <span class="status-msg" id="saveStatus"></span>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filterBar">
+      <span class="filter-bar-label"><i class="ti ti-filter" style="font-size:12px;vertical-align:middle;margin-right:3px"></i> Filter</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">Sold on</span>
+        <input type="date" id="filterDateFrom" title="From date" onchange="applyFiltersAndRender()" />
+        <span style="font-size:11px;color:var(--muted)">→</span>
+        <input type="date" id="filterDateTo" title="To date" onchange="applyFiltersAndRender()" />
+      </div>
+      <div class="filter-sep"></div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">P&amp;L</span>
+        <select id="filterPnlType" onchange="applyFiltersAndRender()">
+          <option value="all">All</option>
+          <option value="profit">Profit only</option>
+          <option value="loss">Loss only</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="number" id="filterPnlMin" placeholder="Min ₹" oninput="applyFiltersAndRender()" />
+        <span style="font-size:11px;color:var(--muted)">to</span>
+        <input type="number" id="filterPnlMax" placeholder="Max ₹" oninput="applyFiltersAndRender()" />
+      </div>
+      <div class="filter-sep"></div>
+      <span class="filter-active-badge" id="filterActiveBadge"></span>
+      <button class="btn btn-sm" onclick="clearFilters()" style="color:var(--muted)"><i class="ti ti-x" style="font-size:12px"></i> Clear</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Scrip</th><th>Type</th><th>Bought at</th><th>Qty</th>
+            <th>Invested ₹</th><th>% PF</th><th>Sold at</th>
+            <th class="sortable" id="thDate" onclick="toggleSort('date')">Sold on <span class="sort-icon"></span></th>
+            <th class="sortable" id="thPnl" onclick="toggleSort('pnl')">P&amp;L ₹ <span class="sort-icon"></span></th>
+            <th>P&amp;L %</th><th>PF Impact %</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tradeBody">
+          <tr><td colspan="12" class="empty-state">
+            <i class="ti ti-chart-candle"></i>
+            <p>No trades this month. Add your first trade above.</p>
+          </td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -1667,11 +1667,15 @@ async function loadFromFirebase() {
       saveLocal();
     }
     loadMonth(); syncFYFromCurrentMonth();
+    if (document.getElementById("panelAnalytics").classList.contains("active")) onAnalyticsOpen();
     setDriveStatus("connected", "Firebase synced");
   } catch(e) {
     setDriveStatus("error", "Load failed");
     const hadLocal = loadLocal();
-    if (hadLocal) { loadMonth(); syncFYFromCurrentMonth(); }
+    if (hadLocal) {
+      loadMonth(); syncFYFromCurrentMonth();
+      if (document.getElementById("panelAnalytics").classList.contains("active")) onAnalyticsOpen();
+    }
   }
 }
 
