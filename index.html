@@ -2566,13 +2566,32 @@ function renderDailyPnlChart() {
   const colors = values.map(v => v >= 0 ? "#10b981" : "#ef4444");
   const colorsHover = values.map(v => v >= 0 ? "#34d399" : "#f87171");
 
+  // Mild horizontal line at the zero baseline
+  const zeroLinePlugin = {
+    id: "zeroLine",
+    afterDraw(chart) {
+      const { ctx: c, chartArea, scales } = chart;
+      const yZero = scales.y.getPixelForValue(0);
+      if (yZero < chartArea.top || yZero > chartArea.bottom) return;
+      c.save();
+      c.beginPath();
+      c.moveTo(chartArea.left, yZero);
+      c.lineTo(chartArea.right, yZero);
+      c.lineWidth = 1;
+      c.strokeStyle = "rgba(255,255,255,0.12)";
+      c.stroke();
+      c.restore();
+    }
+  };
+
   chartDailyPnlInst = new Chart(ctx, {
     type: "bar",
     data: { labels, datasets: [{
       label: "P&L", data: values,
       backgroundColor: colors, hoverBackgroundColor: colorsHover,
-      borderRadius: 3, borderSkipped: false, maxBarThickness: 22,
+      borderRadius: 0, borderSkipped: false, maxBarThickness: 22,
     }] },
+    plugins: [zeroLinePlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
