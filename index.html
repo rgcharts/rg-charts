@@ -1432,6 +1432,40 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div id="reviewCumStat" style="display:none;margin-bottom:14px;padding:12px 18px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;gap:16px;flex-wrap:wrap;"></div>
       <div id="reviewReasonBreakdown" style="display:none;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
       <div id="reviewCards"></div>
+
+      <!-- Charges & Taxes -->
+      <div class="a-card" style="max-width:640px;margin-top:24px;">
+        <div class="a-card-title"><span>Charges &amp; Taxes</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Verify net P&amp;L after brokerage, STT, and other charges for a month.</div>
+
+        <div class="sel-card" style="margin-bottom:14px;">
+          <div class="sel-label">Select Month</div>
+          <select id="ctMonthSelect" onchange="onCTMonthChange()" style="width:100%;font-size:16px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
+            <option value="">Choose a month…</option>
+          </select>
+        </div>
+
+        <div id="ctResultWrap" style="display:none;">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;">
+            <div class="metric-card">
+              <div class="metric-lbl">Gross P&amp;L</div>
+              <div class="metric-num" id="ctGrossPnl">₹0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-lbl">Charges</div>
+              <div style="margin-top:4px;">
+                <input type="number" id="ctChargesInput" placeholder="0" step="0.01" oninput="onCTChargesInput()"
+                  style="width:100%;font-size:18px;font-weight:800;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;outline:none;font-family:inherit;" />
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-lbl">Net P&amp;L</div>
+              <div class="metric-num" id="ctNetPnl">₹0</div>
+            </div>
+          </div>
+          <div id="ctSavedNote" style="font-size:11px;color:var(--muted);"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1543,7 +1577,7 @@ const FIREBASE_CONFIG = {
   appId:             "1:131451484373:web:02b315339f703db1390a5c"
 };
 
-let state = { months: {}, fyCapitals: {}, reviews: {} };
+let state = { months: {}, fyCapitals: {}, reviews: {}, charges: {} };
 const _now = new Date();
 let currentMonth = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][_now.getMonth()] + " " + _now.getFullYear();
 let capital = 0;
@@ -1630,7 +1664,7 @@ async function signInWithGoogle() { loginWithGoogle(); }
 async function signOut() {
   if (!auth) return;
   await auth.signOut();
-  state = { months: {}, fyCapitals: {}, reviews: {} };
+  state = { months: {}, fyCapitals: {}, reviews: {}, charges: {} };
   loadMonth(); renderCalendar(); updateFYStats();
   setDriveStatus("error", "Signed out");
   const lp = document.getElementById("loginPage");
@@ -1665,6 +1699,7 @@ async function loadFromFirebase() {
       state.months    = data.months    || {};
       state.fyCapitals = data.fyCapitals || {};
       state.reviews   = data.reviews   || {};
+      state.charges   = data.charges   || {};
       saveLocal();
     }
     loadMonth(); syncFYFromCurrentMonth();
@@ -1689,6 +1724,7 @@ async function saveToFirebase() {
       months:     state.months,
       fyCapitals: state.fyCapitals || {},
       reviews:    state.reviews    || {},
+      charges:    state.charges    || {},
       updatedAt:  new Date().toISOString()
     });
     setStatus("saved", "Saved ✓");
@@ -1717,11 +1753,11 @@ function showFirebaseSetup() {
 }
 
 const LS_KEY = "rg_charts_journal";
-function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ months: state.months, fyCapitals: state.fyCapitals || {}, reviews: state.reviews || {} })); } catch(e) {} }
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify({ months: state.months, fyCapitals: state.fyCapitals || {}, reviews: state.reviews || {}, charges: state.charges || {} })); } catch(e) {} }
 function loadLocal() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) { const d = JSON.parse(raw); state.months = d.months || {}; state.fyCapitals = d.fyCapitals || {}; state.reviews = d.reviews || {}; return true; }
+    if (raw) { const d = JSON.parse(raw); state.months = d.months || {}; state.fyCapitals = d.fyCapitals || {}; state.reviews = d.reviews || {}; state.charges = d.charges || {}; return true; }
   } catch(e) {}
   return false;
 }
@@ -2156,6 +2192,7 @@ function backupAllData() {
     months: state.months,
     fyCapitals: state.fyCapitals || {},
     reviews: state.reviews || {},
+    charges: state.charges || {},
     driveFileId: state.driveFileId || null,
     exportedAt: new Date().toISOString()
   }, null, 2);
@@ -2188,6 +2225,8 @@ function restoreAllData(event) {
       });
       Object.assign(state.fyCapitals, parsed.fyCapitals || {});
       Object.assign(state.reviews,    parsed.reviews    || {});
+      if (!state.charges) state.charges = {};
+      Object.assign(state.charges,    parsed.charges    || {});
       saveLocal();
       saveToDrive();
       loadMonth(); renderCalendar(); updateFYStats();
@@ -3394,9 +3433,63 @@ function populateReasonFilter() {
   sel.innerHTML = '<option value="all">All reasons</option>' + usedReasons.map(r => `<option value="${r}" ${r===cur?"selected":""}>${r}</option>`).join("");
 }
 
+// ── CHARGES & TAXES ──
+function populateCTMonthSelect() {
+  const sel = document.getElementById("ctMonthSelect");
+  if (!sel) return;
+  const months = Object.keys(state.months).filter(mk => (state.months[mk].trades || []).length > 0);
+  months.sort((a, b) => new Date("01 " + b) - new Date("01 " + a));
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Choose a month…</option>' + months.map(m => `<option value="${m}" ${m===cur?"selected":""}>${m}</option>`).join("");
+}
+
+function onCTMonthChange() {
+  const month = document.getElementById("ctMonthSelect").value;
+  const wrap  = document.getElementById("ctResultWrap");
+  if (!month) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+
+  const trades = state.months[month]?.trades || [];
+  const gross = trades.reduce((s, t) => s + (t.pnl || 0), 0);
+  document.getElementById("ctGrossPnl").textContent = (gross >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(gross));
+  document.getElementById("ctGrossPnl").style.color = gross >= 0 ? "var(--green)" : "var(--red)";
+
+  const savedCharge = state.charges?.[month] ?? "";
+  document.getElementById("ctChargesInput").value = savedCharge;
+
+  updateCTNetPnl(gross);
+}
+
+function onCTChargesInput() {
+  const month = document.getElementById("ctMonthSelect").value;
+  if (!month) return;
+  const val = parseFloat(document.getElementById("ctChargesInput").value) || 0;
+  if (!state.charges) state.charges = {};
+  state.charges[month] = val;
+  saveLocal(); saveToDrive();
+
+  const trades = state.months[month]?.trades || [];
+  const gross = trades.reduce((s, t) => s + (t.pnl || 0), 0);
+  updateCTNetPnl(gross);
+
+  const note = document.getElementById("ctSavedNote");
+  note.textContent = "Saved ✓";
+  clearTimeout(window._ctSaveTimer);
+  window._ctSaveTimer = setTimeout(() => { note.textContent = ""; }, 1500);
+}
+
+function updateCTNetPnl(gross) {
+  const charges = parseFloat(document.getElementById("ctChargesInput").value) || 0;
+  const net = gross - charges;
+  const netEl = document.getElementById("ctNetPnl");
+  netEl.textContent = (net >= 0 ? "+" : "−") + "₹" + fmt(Math.abs(net));
+  netEl.style.color = net >= 0 ? "var(--green)" : "var(--red)";
+}
+
 function renderTradeReview() {
   populateMonthFilter();
   populateReasonFilter();
+  populateCTMonthSelect();
   const filter       = document.getElementById("reviewFilter")?.value || "all";
   const mFilter      = document.getElementById("reviewMonthFilter")?.value || "all";
   const reasonFilter = document.getElementById("reviewReasonFilter")?.value || "all";
