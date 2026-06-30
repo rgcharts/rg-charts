@@ -2417,6 +2417,24 @@ function renderCalendar() {
 
 let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null;
 
+// Shared mild zero-baseline plugin — visible in both light & dark mode
+const zeroLinePlugin = {
+  id: "zeroLine",
+  afterDraw(chart) {
+    const { ctx: c, chartArea, scales } = chart;
+    const yZero = scales.y.getPixelForValue(0);
+    if (yZero < chartArea.top || yZero > chartArea.bottom) return;
+    c.save();
+    c.beginPath();
+    c.moveTo(chartArea.left, yZero);
+    c.lineTo(chartArea.right, yZero);
+    c.lineWidth = 1;
+    c.strokeStyle = "rgba(148,163,184,0.5)";
+    c.stroke();
+    c.restore();
+  }
+};
+
 function buildEquityCfg(labels, pnlData, height) {
   const lastVal = pnlData[pnlData.length - 1] || 0;
   const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
@@ -2432,6 +2450,7 @@ function buildEquityCfg(labels, pnlData, height) {
       },
       tension: 0.35
     }]},
+    plugins: [zeroLinePlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
@@ -2518,6 +2537,7 @@ function renderMonthCurve() {
   }
   chartMonthInst = new Chart(ctx, {
     type: "line", data: { labels, datasets },
+    plugins: [zeroLinePlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
@@ -2565,24 +2585,6 @@ function renderDailyPnlChart() {
 
   const colors = values.map(v => v >= 0 ? "#10b981" : "#ef4444");
   const colorsHover = values.map(v => v >= 0 ? "#34d399" : "#f87171");
-
-  // Mild horizontal line at the zero baseline
-  const zeroLinePlugin = {
-    id: "zeroLine",
-    afterDraw(chart) {
-      const { ctx: c, chartArea, scales } = chart;
-      const yZero = scales.y.getPixelForValue(0);
-      if (yZero < chartArea.top || yZero > chartArea.bottom) return;
-      c.save();
-      c.beginPath();
-      c.moveTo(chartArea.left, yZero);
-      c.lineTo(chartArea.right, yZero);
-      c.lineWidth = 1;
-      c.strokeStyle = "rgba(255,255,255,0.12)";
-      c.stroke();
-      c.restore();
-    }
-  };
 
   chartDailyPnlInst = new Chart(ctx, {
     type: "bar",
