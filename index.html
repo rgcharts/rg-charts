@@ -2952,10 +2952,11 @@ function renderSummary() {
   const maxAbsPnl = Math.max(...monthRows.map(r => Math.abs(r.pnl)), 1);
   let hmHtml = `<div class="fy-hm-label" style="font-size:9px;text-align:center;padding:0;">Month</div>`;
   MONTH_LABELS.forEach(ml => { hmHtml += `<div class="fy-hm-header">${ml}</div>`; });
-  hmHtml += `<div class="fy-hm-label">Trades</div>`;
-  monthRows.forEach(r => { hmHtml += `<div class="fy-hm-cell no-data" style="font-size:11px;font-weight:700;color:var(--text2)">${r.trades.length || '—'}</div>`; });
-  hmHtml += `<div class="fy-hm-label">Win %</div>`;
-  monthRows.forEach(r => { const val = r.winPct !== null ? r.winPct.toFixed(0) + '%' : '—'; const cls = r.winPct !== null ? (r.winPct >= 50 ? 'profit' : 'loss') : 'no-data'; hmHtml += `<div class="fy-hm-cell ${cls}">${val}</div>`; });
+  hmHtml += `<div class="fy-hm-label">Capital</div>`;
+  monthRows.forEach(r => {
+    const v = r.cap >= 100000 ? (r.cap / 100000).toFixed(1) + 'L' : r.cap >= 1000 ? (r.cap / 1000).toFixed(0) + 'K' : r.cap ? r.cap.toFixed(0) : '—';
+    hmHtml += `<div class="fy-hm-cell no-data" style="font-size:11px;font-weight:700;color:var(--text2)" title="${r.mk}: ₹${fmt(r.cap)}">${r.cap ? '₹' + v : '—'}</div>`;
+  });
   hmHtml += `<div class="fy-hm-label">P&L</div>`;
   monthRows.forEach(r => {
     if (!r.trades.length) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; }
@@ -2966,6 +2967,8 @@ function renderSummary() {
   });
   hmHtml += `<div class="fy-hm-label">P&L %</div>`;
   monthRows.forEach(r => { if (!r.trades.length || r.pnlPct === null) { hmHtml += `<div class="fy-hm-cell no-data">—</div>`; return; } const cls = r.pnlPct >= 0 ? 'profit' : 'loss'; hmHtml += `<div class="fy-hm-cell ${cls}">${r.pnlPct >= 0 ? '+' : ''}${r.pnlPct.toFixed(1)}%</div>`; });
+  hmHtml += `<div class="fy-hm-label">Win %</div>`;
+  monthRows.forEach(r => { const val = r.winPct !== null ? r.winPct.toFixed(0) + '%' : '—'; const cls = r.winPct !== null ? (r.winPct >= 50 ? 'profit' : 'loss') : 'no-data'; hmHtml += `<div class="fy-hm-cell ${cls}">${val}</div>`; });
   document.getElementById("fyHeatmap").innerHTML = hmHtml;
   let cumRun = 0, totTrades = 0, totWins = 0, totLosses = 0, totPnl = 0;
   let rows = '';
