@@ -1382,6 +1382,27 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
           <div id="importStatus" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
         </div>
       </div>
+
+      <div class="a-card" style="max-width:640px;margin-top:18px;">
+        <div class="a-card-title">Import Zerodha Tradebook</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Upload the raw tradebook CSV from Zerodha Console → Reports → Tradebook. Buy/sell legs are matched automatically (FIFO) into closed trades.</div>
+        <div class="drop-zone" id="ztDropZone" onclick="document.getElementById('ztFile').click()" ondragover="onZTDragOver(event)" ondragleave="onZTDragLeave(event)" ondrop="onZTDrop(event)">
+          <i class="ti ti-receipt"></i>
+          <p><strong>Click to upload</strong> or drag &amp; drop</p>
+          <p style="font-size:11px;margin-top:4px">tradebook-XXXXXX-EQ.csv</p>
+        </div>
+        <input type="file" id="ztFile" accept=".csv" style="display:none" onchange="onZTFileSelect(event)" />
+        <div id="ztPreviewWrap" style="display:none;margin-top:14px;">
+          <div id="ztSummary" style="font-size:13px;color:var(--text);margin-bottom:10px;"></div>
+          <div id="ztMatchedWrap" class="import-preview" style="max-height:260px;overflow-y:auto;"></div>
+          <div id="ztSkippedNote" style="font-size:11px;color:var(--muted);margin-top:8px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-primary btn-sm" onclick="doZTImport()"><i class="ti ti-download"></i> Import matched trades</button>
+            <button class="btn btn-sm" onclick="resetZTImport()">Cancel</button>
+          </div>
+          <div id="ztImportStatus" style="font-size:12px;margin-top:8px;color:var(--muted)"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2586,6 +2607,163 @@ function doImport() {
     added++;
   });
   document.getElementById("importStatus").innerHTML = '<span style="color:var(--green)">✓ ' + added + ' trades imported</span>' + (skipped ? ' <span style="color:var(--muted)">· ' + skipped + ' rows skipped</span>' : '');
+  loadMonth(); renderCalendar(); renderMonthCurve(); renderFYCurve(); saveToDrive();
+}
+
+// ── ZERODHA TRADEBOOK IMPORT ──
+let ztMatchedTrades = [], ztSkippedSymbols = [];
+const MONTHS_ARR_ZT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function onZTDragOver(e) { e.preventDefault(); document.getElementById("ztDropZone").classList.add("drag-over"); }
+function onZTDragLeave(e) { document.getElementById("ztDropZone").classList.remove("drag-over"); }
+function onZTDrop(e) { e.preventDefault(); document.getElementById("ztDropZone").classList.remove("drag-over"); const f = e.dataTransfer.files[0]; if (f) parseZerodhaTradebook(f); }
+function onZTFileSelect(e) { const f = e.target.files[0]; if (f) parseZerodhaTradebook(f); }
+
+function parseZerodhaTradebook(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: "array", cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+      if (!rows || !rows.length) { alert("File appears empty or unreadable."); return; }
+
+      // Validate this looks like a Zerodha tradebook
+      const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim());
+      const required = ["symbol", "trade_date", "trade_type", "quantity", "price"];
+      const missing = required.filter(r => !headers.includes(r));
+      if (missing.length) {
+        alert("This doesn't look like a Zerodha tradebook CSV. Missing columns: " + missing.join(", "));
+        return;
+      }
+
+      runZTMatching(rows);
+    } catch (err) { alert("Could not read file: " + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function runZTMatching(rows) {
+  // Group legs by symbol
+  const bySymbol = {};
+  rows.forEach(r => {
+    const sym = String(r.symbol || "").trim().toUpperCase();
+    if (!sym) return;
+    bySymbol[sym] = bySymbol[sym] || [];
+    bySymbol[sym].push({
+      date: String(r.trade_date || "").trim(),
+      time: String(r.order_execution_time || "").trim(),
+      type: String(r.trade_type || "").trim().toLowerCase(),
+      qty: parseFloat(r.quantity) || 0,
+      price: parseFloat(r.price) || 0,
+    });
+  });
+
+  ztMatchedTrades = [];
+  ztSkippedSymbols = [];
+
+  Object.keys(bySymbol).forEach(sym => {
+    const legs = bySymbol[sym].slice().sort((a, b) => (a.date + "T" + a.time).localeCompare(b.date + "T" + b.time));
+    const buyQueue = []; // [date, qty, price]
+    const matchedLegs = [];
+    let hadUnmatchedSell = false, hadOpenBuy = false;
+
+    legs.forEach(leg => {
+      if (leg.type === "buy") {
+        buyQueue.push([leg.date, leg.qty, leg.price]);
+      } else if (leg.type === "sell") {
+        let remaining = leg.qty;
+        while (remaining > 1e-6 && buyQueue.length) {
+          const b = buyQueue[0];
+          const matched = Math.min(b[1], remaining);
+          matchedLegs.push({ buyDate: b[0], sellDate: leg.date, qty: matched, buyPrice: b[2], sellPrice: leg.price });
+          b[1] -= matched; remaining -= matched;
+          if (b[1] <= 1e-6) buyQueue.shift();
+        }
+        if (remaining > 1e-6) { hadUnmatchedSell = true; } // sold qty whose buy leg isn't in this file
+      }
+    });
+    if (buyQueue.some(b => b[1] > 1e-6)) hadOpenBuy = true; // still holding, not sold yet
+
+    if (!matchedLegs.length) {
+      ztSkippedSymbols.push({ sym, reason: hadUnmatchedSell ? "no buy leg in file (bought earlier)" : "no sell leg in file (still open)" });
+      return;
+    }
+
+    // Group matched legs by (buyDate, sellDate) into one trade row, weighted-avg price
+    const groups = {};
+    matchedLegs.forEach(m => {
+      const key = m.buyDate + "|" + m.sellDate;
+      if (!groups[key]) groups[key] = { buyDate: m.buyDate, sellDate: m.sellDate, qty: 0, buyVal: 0, sellVal: 0 };
+      const g = groups[key];
+      g.qty += m.qty; g.buyVal += m.qty * m.buyPrice; g.sellVal += m.qty * m.sellPrice;
+    });
+
+    Object.values(groups).forEach(g => {
+      const avgBuy = g.buyVal / g.qty, avgSell = g.sellVal / g.qty;
+      const dayGap = (new Date(g.sellDate) - new Date(g.buyDate)) / 86400000;
+      const type = dayGap === 0 ? "INTRA" : dayGap === 1 ? "BTST" : "SWING";
+      ztMatchedTrades.push({
+        scrip: sym, type, buy: avgBuy, sell: avgSell, qty: Math.round(g.qty * 100) / 100,
+        date: g.sellDate, invested: avgBuy * g.qty, pnl: (avgSell - avgBuy) * g.qty,
+      });
+    });
+
+    if (hadUnmatchedSell) ztSkippedSymbols.push({ sym, reason: "some sell qty had no matching buy leg in file (bought earlier — skipped that portion)" });
+    if (hadOpenBuy) ztSkippedSymbols.push({ sym, reason: "still holding some quantity (not yet sold — skipped that portion)" });
+  });
+
+  ztMatchedTrades.sort((a, b) => a.date.localeCompare(b.date));
+  showZTPreview();
+}
+
+function showZTPreview() {
+  const wrap = document.getElementById("ztPreviewWrap");
+  const netPnl = ztMatchedTrades.reduce((s, t) => s + t.pnl, 0);
+  const color = netPnl >= 0 ? "var(--green)" : "var(--red)";
+  document.getElementById("ztSummary").innerHTML =
+    `<strong>${ztMatchedTrades.length}</strong> trade(s) matched · Net P&amp;L: <span style="color:${color};font-weight:700">${netPnl >= 0 ? "+" : ""}₹${Math.abs(Math.round(netPnl)).toLocaleString("en-IN")}</span>`;
+
+  let html = '<table><tr><th>Scrip</th><th>Type</th><th>Buy</th><th>Sell</th><th>Qty</th><th>Date</th><th>P&amp;L</th></tr>';
+  ztMatchedTrades.slice(0, 50).forEach(t => {
+    const tc = t.pnl >= 0 ? "var(--green)" : "var(--red)";
+    html += `<tr><td>${t.scrip}</td><td>${t.type}</td><td>₹${t.buy.toFixed(2)}</td><td>₹${t.sell.toFixed(2)}</td><td>${t.qty}</td><td>${t.date}</td><td style="color:${tc}">${t.pnl >= 0 ? "+" : ""}₹${Math.round(t.pnl).toLocaleString("en-IN")}</td></tr>`;
+  });
+  if (ztMatchedTrades.length > 50) html += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">…and ${ztMatchedTrades.length - 50} more</td></tr>`;
+  html += '</table>';
+  document.getElementById("ztMatchedWrap").innerHTML = html;
+
+  const skipNote = document.getElementById("ztSkippedNote");
+  if (ztSkippedSymbols.length) {
+    skipNote.innerHTML = "Not imported — " + ztSkippedSymbols.map(s => `<strong>${s.sym}</strong> (${s.reason})`).join("; ") + ". Add these manually if needed.";
+  } else {
+    skipNote.innerHTML = "";
+  }
+
+  wrap.style.display = "block";
+}
+
+function resetZTImport() {
+  ztMatchedTrades = []; ztSkippedSymbols = [];
+  document.getElementById("ztPreviewWrap").style.display = "none";
+  document.getElementById("ztFile").value = "";
+  document.getElementById("ztImportStatus").textContent = "";
+}
+
+function doZTImport() {
+  let added = 0;
+  ztMatchedTrades.forEach(t => {
+    const d = new Date(t.date + "T00:00:00");
+    const monthKey = !isNaN(d) ? (MONTHS_ARR_ZT[d.getMonth()] + " " + d.getFullYear()) : currentMonth;
+    if (!state.months[monthKey]) state.months[monthKey] = { capital: 0, trades: [] };
+    state.months[monthKey].trades.push({
+      id: Date.now() + Math.random(), scrip: t.scrip, type: t.type,
+      buy: t.buy, qty: t.qty, sell: t.sell, date: t.date,
+      invested: t.invested, pnl: t.pnl, capital: state.months[monthKey].capital,
+    });
+    added++;
+  });
+  document.getElementById("ztImportStatus").innerHTML = '<span style="color:var(--green)">✓ ' + added + ' trades imported</span>';
   loadMonth(); renderCalendar(); renderMonthCurve(); renderFYCurve(); saveToDrive();
 }
 
