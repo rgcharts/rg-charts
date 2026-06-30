@@ -1434,28 +1434,44 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 
     <div id="dayChartPanel" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Chart — <span id="dayChartSymbol"></span></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Chart — <span id="dayChartSymbol"></span></div>
+          <!-- Source toggle tabs -->
+          <div style="display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;">
+            <button id="chartSrcYahoo" onclick="switchChartSource('yahoo')"
+              style="padding:3px 12px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:none;color:var(--muted);transition:all 0.15s;">
+              Yahoo
+            </button>
+            <button id="chartSrcTV" onclick="switchChartSource('tv')"
+              style="padding:3px 12px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--accent2);color:#fff;transition:all 0.15s;">
+              TradingView
+            </button>
+          </div>
+        </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <!-- Y-axis scale controls -->
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
+          <!-- Y-axis scale controls (Yahoo only) -->
+          <div id="chartYScaleCtrl" style="display:none;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
             <span style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Y Scale</span>
             <button onclick="adjustYScale(-0.05)" title="Tighten Y axis" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">−</button>
             <button onclick="resetYScale()" title="Reset Y axis" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:10px;font-weight:700;padding:0 2px;font-family:inherit;">AUTO</button>
             <button onclick="adjustYScale(0.05)" title="Expand Y axis" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">+</button>
           </div>
-          <!-- X-axis scale controls -->
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
+          <!-- X-axis scale controls (Yahoo only) -->
+          <div id="chartXScaleCtrl" style="display:none;align-items:center;gap:6px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;">
             <span style="font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">X Scale</span>
             <button onclick="adjustXScale(-10)" title="Zoom in X" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">−</button>
             <button onclick="resetXScale()" title="Reset X axis" style="background:none;border:none;cursor:pointer;color:var(--accent3);font-size:10px;font-weight:700;padding:0 2px;font-family:inherit;">AUTO</button>
             <button onclick="adjustXScale(10)" title="Zoom out X" style="background:none;border:none;cursor:pointer;color:var(--text);font-size:16px;padding:0 2px;line-height:1;">+</button>
           </div>
-          <button onclick="document.getElementById('dayChartPanel').style.display='none';if(dayChartInst){dayChartInst.destroy();dayChartInst=null;}" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">✕</button>
+          <button onclick="closeChartPanel()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;">✕</button>
         </div>
       </div>
-      <!-- Timeframe bar -->
-      <div id="dayChartTfBar" style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;"></div>
-      <div id="dayChartWidget" style="height:480px;border-radius:10px;overflow:hidden;"></div>
+      <!-- Timeframe bar (Yahoo only) -->
+      <div id="dayChartTfBar" style="display:none;gap:4px;margin-bottom:10px;flex-wrap:wrap;"></div>
+      <!-- Yahoo chart -->
+      <div id="dayChartWidget" style="display:none;height:480px;border-radius:10px;overflow:hidden;"></div>
+      <!-- TradingView chart -->
+      <div id="dayChartTV" style="display:block;height:520px;border-radius:10px;overflow:hidden;"></div>
     </div>
 
     <!-- Trade rows -->
@@ -1922,7 +1938,7 @@ function renderTrades() {
     const impact = (t.pnl / cap) * 100;
     const cls = t.pnl >= 0 ? "pnl-pos" : "pnl-neg";
     return `<tr>
-      <td style="font-weight:600;color:var(--text)">${t.scrip}</td>
+      <td style="font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" onclick="openTradeChart('${t.scrip}', '${t.date}')" title="Click to view chart">${t.scrip}</td>
       <td><span class="tag tag-${t.type.toLowerCase()}">${t.type}</span></td>
       <td>₹${fmt(t.buy)}</td>
       <td>${t.qty}</td>
@@ -2684,6 +2700,18 @@ function jumpToMonth(mk) {
 }
 
 // ── DAY DETAIL MODAL ──
+// Reusable entry point: open the day-detail modal for a trade's date,
+// then immediately show its in-page chart. Used by Trade Log rows,
+// Trade Review cards, and the day modal's own scrip links.
+function openTradeChart(scrip, dateStr) {
+  if (!scrip || !dateStr) return;
+  openDayModal(dateStr);
+  // Wait a tick for the modal's open animation/render before showing the chart
+  requestAnimationFrame(() => {
+    setTimeout(() => showDayChart(scrip, dateStr), 60);
+  });
+}
+
 function openDayModal(dateStr) {
   const trades = Object.values(state.months).flatMap(m => m.trades || []).filter(t => t.date === dateStr);
   if (!trades.length) return;
@@ -2831,7 +2859,12 @@ async function showDayChart(scrip, dateStr) {
       ${tf.label}
     </button>`).join("");
 
-  await fetchAndRenderChart(scrip, dateStr, _activeTf);
+  // Render in whichever source is currently selected (TradingView by default)
+  if (_chartSource === 'tv') {
+    renderTVWidget(scrip, dateStr);
+  } else {
+    await fetchAndRenderChart(scrip, dateStr, _activeTf);
+  }
 }
 
 function switchChartTf(idx) {
@@ -3169,7 +3202,7 @@ function renderTradeReview() {
     const pnlFmt = pnlSign + "₹" + Math.abs(Math.round(t.pnl)).toLocaleString("en-IN");
     const opts = (isWin ? WIN_REASONS : LOSS_REASONS).map(o => `<option value="${o}" ${rev.reason===o?"selected":""}>${o}</option>`).join("");
     return `<div class="review-card ${isWin ? "rc-win" : "rc-loss"}">
-      <div class="rc-scrip">${t.scrip}</div>
+      <div class="rc-scrip" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" onclick="openTradeChart('${t.scrip}', '${t.date || ""}')" title="Click to view chart">${t.scrip}</div>
       <span class="rc-type ${isWin?"win":"loss"}">${t.type||"BTST"}</span>
       <span style="font-size:12px;color:var(--muted);">${t.date || ""}</span>
       <span style="font-size:12px;color:var(--muted);">${t.month}</span>
@@ -3186,11 +3219,138 @@ function closeDayModal(e) {
   modal.classList.remove("open");
   if (dayChartInst)    { dayChartInst.destroy();    dayChartInst    = null; }
   if (dayChartVolInst) { dayChartVolInst.destroy(); dayChartVolInst = null; }
+  if (_tvWidget)       { try { _tvWidget.remove(); } catch(e) {} _tvWidget = null; }
   setTimeout(() => {
     modal.style.display = "none";
     document.getElementById("dayChartPanel").style.display = "none";
     document.getElementById("dayChartWidget").innerHTML = "";
+    document.getElementById("dayChartTV").innerHTML = "";
+    _chartSource = "tv";
   }, 150);
+}
+
+// ── TRADINGVIEW CHART SOURCE SWITCHER ──
+let _chartSource = 'tv'; // 'yahoo' | 'tv'  — TradingView is default
+let _tvWidget = null;
+
+function switchChartSource(src) {
+  _chartSource = src;
+  const yahooBtn = document.getElementById('chartSrcYahoo');
+  const tvBtn    = document.getElementById('chartSrcTV');
+  const yahooWrap = document.getElementById('dayChartWidget');
+  const tvWrap    = document.getElementById('dayChartTV');
+  const yScale    = document.getElementById('chartYScaleCtrl');
+  const xScale    = document.getElementById('chartXScaleCtrl');
+  const tfBar     = document.getElementById('dayChartTfBar');
+
+  if (src === 'yahoo') {
+    yahooBtn.style.background = 'var(--accent2)'; yahooBtn.style.color = '#fff';
+    tvBtn.style.background = 'none'; tvBtn.style.color = 'var(--muted)';
+    yahooWrap.style.display = 'block';
+    tvWrap.style.display = 'none';
+    yScale.style.display = ''; xScale.style.display = ''; tfBar.style.display = '';
+    // destroy TV widget
+    if (_tvWidget) { try { _tvWidget.remove(); } catch(e) {} _tvWidget = null; }
+    tvWrap.innerHTML = '';
+    // re-render yahoo chart
+    if (_chartScrip && _chartDate) fetchAndRenderChart(_chartScrip, _chartDate, _activeTf);
+  } else {
+    tvBtn.style.background = 'var(--accent2)'; tvBtn.style.color = '#fff';
+    yahooBtn.style.background = 'none'; yahooBtn.style.color = 'var(--muted)';
+    yahooWrap.style.display = 'none';
+    tvWrap.style.display = 'block';
+    yScale.style.display = 'none'; xScale.style.display = 'none'; tfBar.style.display = 'none';
+    // destroy yahoo chart
+    if (dayChartInst)    { dayChartInst.destroy();    dayChartInst    = null; }
+    if (dayChartVolInst) { dayChartVolInst.destroy(); dayChartVolInst = null; }
+    // render TV widget
+    renderTVWidget(_chartScrip, _chartDate);
+  }
+}
+
+function renderTVWidget(scrip, dateStr) {
+  const tvWrap = document.getElementById('dayChartTV');
+  tvWrap.innerHTML = '';
+  const containerId = 'tv_widget_' + Date.now();
+  const div = document.createElement('div');
+  div.id = containerId;
+  div.style.height = '100%';
+  tvWrap.appendChild(div);
+
+  // Map NSE scrip to TradingView symbol
+  const tvSymbol = 'NSE:' + scrip.replace(/[^A-Z0-9&]/gi, '').toUpperCase()
+    .replace('&', '_');
+
+  const isDark = !document.body.classList.contains('light-mode');
+
+  // Compute a ~3-month window centered on the trade date so the chart
+  // opens already scrolled to when the trade happened, not "today".
+  let visibleRange = null;
+  if (dateStr) {
+    const tradeDate = new Date(dateStr + 'T00:00:00');
+    if (!isNaN(tradeDate.getTime())) {
+      const from = new Date(tradeDate); from.setDate(from.getDate() - 75);
+      const to   = new Date(tradeDate); to.setDate(to.getDate() + 15);
+      visibleRange = {
+        from: Math.floor(from.getTime() / 1000),
+        to:   Math.floor(to.getTime() / 1000),
+      };
+    }
+  }
+
+  function initWidget() {
+    _tvWidget = new TradingView.widget({
+      container_id: containerId,
+      symbol: tvSymbol,
+      interval: 'D',
+      timezone: 'Asia/Kolkata',
+      theme: isDark ? 'dark' : 'light',
+      style: '1',
+      locale: 'en',
+      width: '100%',
+      height: 520,
+      toolbar_bg: isDark ? '#1e1b4b' : '#f0f3fa',
+      hide_top_toolbar: false,
+      hide_legend: false,
+      save_image: true,
+      enable_publishing: false,
+      allow_symbol_change: true,
+      studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies'],
+    });
+    // Jump the chart to the trade date once it's ready
+    if (visibleRange && _tvWidget && typeof _tvWidget.onChartReady === 'function') {
+      _tvWidget.onChartReady(function() {
+        try {
+          _tvWidget.chart().setVisibleRange(visibleRange, { applyDefaultRightMargin: true });
+          // Drop a vertical marker line at the exact trade date
+          _tvWidget.chart().createShape(
+            { time: Math.floor(new Date(dateStr + 'T00:00:00').getTime() / 1000), price: 0 },
+            { shape: 'vertical_line', overrides: { linecolor: '#a5b4fc', linewidth: 1, linestyle: 2 } }
+          );
+        } catch (e) { /* widget API can vary by version — fail silently */ }
+      });
+    }
+  }
+
+  if (window.TradingView && window.TradingView.widget) {
+    initWidget();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.onload = initWidget;
+    document.head.appendChild(script);
+  }
+}
+
+function closeChartPanel() {
+  document.getElementById('dayChartPanel').style.display = 'none';
+  if (dayChartInst)    { dayChartInst.destroy();    dayChartInst    = null; }
+  if (dayChartVolInst) { dayChartVolInst.destroy(); dayChartVolInst = null; }
+  if (_tvWidget)       { try { _tvWidget.remove(); } catch(e) {} _tvWidget = null; }
+  document.getElementById('dayChartWidget').innerHTML = '';
+  document.getElementById('dayChartTV').innerHTML = '';
+  // reset to yahoo tab for next open
+  _chartSource = 'tv';
 }
 </script>
 </body>
