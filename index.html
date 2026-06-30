@@ -1435,6 +1435,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
       </div>
       <div id="reviewCumStat" style="display:none;margin-bottom:14px;padding:12px 18px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);display:flex;align-items:center;gap:16px;flex-wrap:wrap;"></div>
+      <div id="reviewReasonBreakdown" style="display:none;margin-bottom:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
       <div id="reviewCards"></div>
     </div>
   </div>
@@ -3378,6 +3379,27 @@ function renderTradeReview() {
       </div>`;
   } else {
     cumEl.style.display = "none";
+  }
+
+  // Reason breakdown — count how many filtered trades fall under each reason
+  const reasonEl = document.getElementById("reviewReasonBreakdown");
+  if (anyFilterActive && filtered.length) {
+    const counts = {};
+    filtered.forEach(t => {
+      const r = state.reviews[t.id]?.reason;
+      if (r && r !== "Select reason…") counts[r] = (counts[r] || 0) + 1;
+    });
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    if (entries.length) {
+      reasonEl.style.display = "flex";
+      reasonEl.innerHTML = entries.map(([reason, count]) =>
+        `<span style="font-size:12px;font-weight:600;color:var(--text);background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:5px 12px;white-space:nowrap;">${reason} — <strong>${count}</strong> ${count === 1 ? "trade" : "trades"}</span>`
+      ).join("");
+    } else {
+      reasonEl.style.display = "none";
+    }
+  } else {
+    reasonEl.style.display = "none";
   }
 
   const wrap = document.getElementById("reviewCards");
