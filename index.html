@@ -1204,22 +1204,27 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 
       <div class="a-row a-row-3">
         <div class="a-card" style="display:flex;flex-direction:column;">
-          <div class="a-card-title">Account Value</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">FY Capital + FY P&L − Withdrawal</div>
-          <div style="margin-bottom:14px;">
-            <div class="sel-label">Withdrawal (₹)</div>
-            <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
-              oninput="onFYWithdrawalChange()"
-              style="width:100%;font-size:20px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;outline:none;font-family:inherit;margin-top:4px;" />
+          <div class="a-card-title">
+            <span>Account Value</span>
           </div>
-          <div style="margin-bottom:14px;">
-            <div class="sel-label">Account Value</div>
-            <div id="acctValue" style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-top:6px;">—</div>
+          <!-- Top stat bar: same layout pattern as equity curve header -->
+          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:12px 20px;align-items:end;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+            <div>
+              <div class="sel-label">Withdrawal (₹)</div>
+              <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
+                oninput="onFYWithdrawalChange()"
+                style="width:140px;font-size:15px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:5px 9px;outline:none;font-family:inherit;margin-top:4px;" />
+            </div>
+            <div>
+              <div class="sel-label">Account Value</div>
+              <div id="acctValue" style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.4px;margin-top:4px;">—</div>
+            </div>
+            <div>
+              <div class="sel-label">Return on Capital</div>
+              <div id="acctValuePct" style="font-size:20px;font-weight:800;color:var(--muted);letter-spacing:-0.4px;margin-top:4px;">—</div>
+            </div>
           </div>
-          <div>
-            <div class="sel-label">Return on Capital</div>
-            <div id="acctValuePct" style="font-size:28px;font-weight:800;color:var(--muted);letter-spacing:-0.5px;margin-top:6px;">—</div>
-          </div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartAcctValue"></canvas></div>
         </div>
         <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title">
@@ -1887,6 +1892,11 @@ function onFYWithdrawalChange() {
   fyMonths.forEach(mk => { const m = state.months[mk]; if (!m) return; fyGrossPnl += (m.trades || []).reduce((s, t) => s + t.pnl, 0); });
   const fyTotalPnl = fyGrossPnl - fyBrokerage;
   updateAcctValue(fyCap, fyTotalPnl, val);
+
+  // Re-render account value chart with new withdrawal
+  const allTrades = fyMonths.flatMap(mk => (state.months[mk]?.trades || []));
+  const { labels, equity } = calcEquityAndDD(allTrades);
+  renderAcctValueChart(labels, equity, fyEndYear);
 }
 
 function updateAcctValue(fyCap, fyTotalPnl, fyWithdrawal) {
@@ -2504,7 +2514,7 @@ function renderCalendar() {
   renderDailyPnlChart();
 }
 
-let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null;
+let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null, chartAcctValueInst = null;
 
 // Shared mild zero-baseline plugin — visible in both light & dark mode
 const zeroLinePlugin = {
@@ -2736,6 +2746,66 @@ function renderFYCurves() {
   const maxDD = Math.max(...dd, 0);
   const ddEl = document.getElementById("fyDDMax");
   if (ddEl) ddEl.textContent = maxDD > 0 ? "Max DD: ₹" + maxDD.toLocaleString("en-IN", { maximumFractionDigits: 0 }) : "";
+
+  // Account Value chart
+  renderAcctValueChart(labels, equity, fyEndYear);
+}
+
+function renderAcctValueChart(labels, equity, fyEndYear) {
+  const ctx = document.getElementById("chartAcctValue")?.getContext("2d"); if (!ctx) return;
+  if (chartAcctValueInst) chartAcctValueInst.destroy();
+
+  const fyCap = state.fyCapitals?.[fyEndYear] || 0;
+  const fyWithdrawal = state.fyWithdrawal?.[fyEndYear] || 0;
+  // Account value at each point = FY Capital + cumulative P&L − withdrawal
+  const acctData = equity.map(e => parseFloat((fyCap + e - fyWithdrawal).toFixed(2)));
+  const lastAcct = acctData[acctData.length - 1] || fyCap;
+  const lineColor = lastAcct >= fyCap ? "#10b981" : "#ef4444";
+  const GREEN = "#10b981", RED = "#ef4444";
+  const GREEN_FILL = "rgba(16,185,129,0.18)", RED_FILL = "rgba(239,68,68,0.15)";
+
+  chartAcctValueInst = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{
+      label: "Account Value", data: acctData,
+      borderColor: lineColor, borderWidth: 2,
+      pointRadius: acctData.length > 30 ? 0 : 3, pointHoverRadius: 5,
+      pointBackgroundColor: ctx2 => (ctx2.raw ?? 0) >= fyCap ? GREEN : RED,
+      fill: true,
+      backgroundColor: ctx2 => {
+        const g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 200);
+        g.addColorStop(0, lastAcct >= fyCap ? GREEN_FILL : RED_FILL);
+        g.addColorStop(1, "rgba(0,0,0,0)"); return g;
+      },
+      segment: {
+        borderColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= fyCap ? GREEN : RED,
+        backgroundColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= fyCap ? GREEN_FILL : RED_FILL,
+      },
+      tension: 0
+    }]},
+    plugins: [zeroLinePlugin],
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
+          titleColor: "#6b7280", bodyColor: "#f0f2f5",
+          callbacks: {
+            label: ctx2 => "₹" + ctx2.raw.toLocaleString("en-IN", { maximumFractionDigits: 0 })
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { display: false }, border: { display: false } },
+        y: {
+          ticks: { color: "#4b5563", font: { size: 9 }, callback: v => { const a = Math.abs(v); return "₹" + (a >= 10000000 ? (v/10000000).toFixed(1) + "Cr" : a >= 100000 ? (v/100000).toFixed(1) + "L" : a >= 1000 ? (v/1000).toFixed(0) + "K" : v.toFixed(0)); } },
+          grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false }
+        }
+      }
+    }
+  });
 }
 
 // alias for old calls
