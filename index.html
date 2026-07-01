@@ -455,7 +455,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 .a-grid { display: flex; flex-direction: column; gap: 16px; }
 .a-row { display: grid; gap: 12px; }
 .a-row-2 { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); align-items: stretch; }
-.a-row-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.a-row-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: stretch; }
 .a-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-xl); padding: 20px 22px;
@@ -1202,31 +1202,26 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
       </div>
 
-      <div class="a-row a-row-2" style="margin-bottom:0;">
-        <div class="a-card" style="display:flex;flex-direction:column;gap:0;">
+      <div class="a-row a-row-3">
+        <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title">Account Value</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">FY Capital + FY P&L − Withdrawal</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:start;">
-            <div>
-              <div class="sel-label">Withdrawal (₹)</div>
-              <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
-                oninput="onFYWithdrawalChange()"
-                style="width:100%;font-size:20px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;outline:none;font-family:inherit;margin-top:4px;" />
-            </div>
-            <div>
-              <div class="sel-label">Account Value</div>
-              <div id="acctValue" style="font-size:26px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-top:6px;">—</div>
-            </div>
-            <div>
-              <div class="sel-label">Return on Capital</div>
-              <div id="acctValuePct" style="font-size:26px;font-weight:800;color:var(--muted);letter-spacing:-0.5px;margin-top:6px;">—</div>
-            </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">FY Capital + FY P&L − Withdrawal</div>
+          <div style="margin-bottom:14px;">
+            <div class="sel-label">Withdrawal (₹)</div>
+            <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
+              oninput="onFYWithdrawalChange()"
+              style="width:100%;font-size:20px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 10px;outline:none;font-family:inherit;margin-top:4px;" />
+          </div>
+          <div style="margin-bottom:14px;">
+            <div class="sel-label">Account Value</div>
+            <div id="acctValue" style="font-size:28px;font-weight:800;color:var(--text);letter-spacing:-0.5px;margin-top:6px;">—</div>
+          </div>
+          <div>
+            <div class="sel-label">Return on Capital</div>
+            <div id="acctValuePct" style="font-size:28px;font-weight:800;color:var(--muted);letter-spacing:-0.5px;margin-top:6px;">—</div>
           </div>
         </div>
-      </div>
-
-      <div class="a-row a-row-2">
-        <div class="a-card">
+        <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title">
             <span>Equity Curve — Financial Year</span>
             <select id="fySelect" onchange="document.getElementById('selFY').value=this.value;onFYChange();renderFYCurves();">
@@ -1238,14 +1233,14 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
               <option value="2030">FY 2029-30</option>
             </select>
           </div>
-          <div class="chart-wrap" style="height:420px"><canvas id="chartFY"></canvas></div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartFY"></canvas></div>
         </div>
-        <div class="a-card">
+        <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title">
             <span>Drawdown — Financial Year</span>
             <span id="fyDDMax" style="font-size:11px;font-weight:600;color:var(--red)"></span>
           </div>
-          <div class="chart-wrap" style="height:420px"><canvas id="chartFYDD"></canvas></div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartFYDD"></canvas></div>
         </div>
       </div>
 
