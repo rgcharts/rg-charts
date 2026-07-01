@@ -2482,8 +2482,8 @@ function buildEquityCfg(labels, pnlData, height) {
         g.addColorStop(1, "rgba(0,0,0,0)"); return g;
       },
       segment: {
-        borderColor: ctx => (ctx.p0.parsed.y >= 0 && ctx.p1.parsed.y >= 0) ? GREEN : (ctx.p0.parsed.y < 0 && ctx.p1.parsed.y < 0) ? RED : undefined,
-        backgroundColor: ctx => (ctx.p0.parsed.y >= 0 && ctx.p1.parsed.y >= 0) ? GREEN_FILL : (ctx.p0.parsed.y < 0 && ctx.p1.parsed.y < 0) ? RED_FILL : undefined,
+        borderColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN : RED,
+        backgroundColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN_FILL : RED_FILL,
       },
       tension: 0
     }]},
@@ -2572,8 +2572,8 @@ function renderMonthCurve() {
       g.addColorStop(1, "rgba(0,0,0,0)"); return g;
     },
     segment: {
-      borderColor: ctx2 => (ctx2.p0.parsed.y >= 0 && ctx2.p1.parsed.y >= 0) ? GREEN : (ctx2.p0.parsed.y < 0 && ctx2.p1.parsed.y < 0) ? RED : undefined,
-      backgroundColor: ctx2 => (ctx2.p0.parsed.y >= 0 && ctx2.p1.parsed.y >= 0) ? GREEN_FILL : (ctx2.p0.parsed.y < 0 && ctx2.p1.parsed.y < 0) ? RED_FILL : undefined,
+      borderColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= 0 ? GREEN : RED,
+      backgroundColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= 0 ? GREEN_FILL : RED_FILL,
     },
     tension: 0, yAxisID: "y"
   }];
