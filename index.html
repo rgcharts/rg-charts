@@ -1288,16 +1288,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       </div>
       <div class="filter-sep"></div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:11px;color:var(--muted)">Type</span>
-        <select id="filterType" onchange="applyFiltersAndRender()">
-          <option value="all">All</option>
-          <option value="INTRA">INTRA</option>
-          <option value="BTST">BTST</option>
-          <option value="SWING">SWING</option>
-        </select>
-      </div>
-      <div class="filter-sep"></div>
-      <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--muted)">P&amp;L</span>
         <select id="filterPnlType" onchange="applyFiltersAndRender()">
           <option value="all">All</option>
@@ -1320,7 +1310,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <table>
         <thead>
           <tr>
-            <th>Scrip</th><th>Type</th><th>Bought at</th><th>Qty</th>
+            <th>Scrip</th><th style="white-space:nowrap;"><select id="filterType" onchange="applyFiltersAndRender()" style="-webkit-appearance:none;appearance:none;background:transparent;border:none;outline:none;font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.8px;cursor:pointer;font-family:inherit;padding:0;"><option value="all">Type</option><option value="INTRA">INTRA</option><option value="BTST">BTST</option><option value="SWING">SWING</option></select></th><th>Bought at</th><th>Qty</th>
             <th>Invested ₹</th><th>% PF</th><th>Sold at</th>
             <th class="sortable" id="thDate" onclick="toggleSort('date')">Sold on <span class="sort-icon"></span></th>
             <th class="sortable" id="thPnl" onclick="toggleSort('pnl')">P&amp;L ₹ <span class="sort-icon"></span></th>
@@ -2090,7 +2080,7 @@ function renderTrades() {
     const cls = t.pnl >= 0 ? "pnl-pos" : "pnl-neg";
     return `<tr>
       <td style="font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" onclick="openTradeChart('${t.scrip}', '${t.date}')" title="Click to view chart">${t.scrip}</td>
-      <td><select class="tag tag-${t.type.toLowerCase()}" onchange="updateTradeType('${t.id}', this.value)" style="border:none;outline:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;font-family:inherit;"><option value="BTST" ${t.type==='BTST'?'selected':''}>BTST</option><option value="INTRA" ${t.type==='INTRA'?'selected':''}>INTRA</option><option value="SWING" ${t.type==='SWING'?'selected':''}>SWING</option></select></td>
+      <td><span class="tag tag-${t.type.toLowerCase()}">${t.type}</span></td>
       <td>₹${fmt(t.buy)}</td>
       <td>${t.qty}</td>
       <td>₹${fmt(t.invested)}</td>
