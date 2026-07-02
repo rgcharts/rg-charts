@@ -411,6 +411,8 @@ tbody tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
 .tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
 .tag-btst  { background: var(--blue-dim); color: #93c5fd; }
 .tag-intra { background: rgba(245,158,11,0.12); color: #fbbf24; }
+.tag-swing { background: rgba(168,85,247,0.12); color: #c084fc; }
+select.tag { -webkit-appearance: none; appearance: none; border: none; outline: none; cursor: pointer; font-family: inherit; }
 .pnl-pos { color: var(--green); font-weight: 600; }
 .pnl-neg { color: var(--red); font-weight: 600; }
 
@@ -1286,6 +1288,16 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       </div>
       <div class="filter-sep"></div>
       <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--muted)">Type</span>
+        <select id="filterType" onchange="applyFiltersAndRender()">
+          <option value="all">All</option>
+          <option value="INTRA">INTRA</option>
+          <option value="BTST">BTST</option>
+          <option value="SWING">SWING</option>
+        </select>
+      </div>
+      <div class="filter-sep"></div>
+      <div style="display:flex;align-items:center;gap:6px">
         <span style="font-size:11px;color:var(--muted)">P&amp;L</span>
         <select id="filterPnlType" onchange="applyFiltersAndRender()">
           <option value="all">All</option>
@@ -1301,6 +1313,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div class="filter-sep"></div>
       <span class="filter-active-badge" id="filterActiveBadge"></span>
       <button class="btn btn-sm" onclick="clearFilters()" style="color:var(--muted)"><i class="ti ti-x" style="font-size:12px"></i> Clear</button>
+      <div style="margin-left:auto;font-size:12px;font-weight:700;white-space:nowrap;" id="filterCumPnl"></div>
     </div>
 
     <div class="table-wrap">
@@ -1966,6 +1979,18 @@ function deleteTrade(id) {
   renderTrades(); updateMetrics(); updateFYStats(); saveToDrive();
 }
 
+function updateTradeType(id, newType) {
+  const trades = state.months[currentMonth]?.trades;
+  if (!trades) return;
+  const t = trades.find(t => t.id == id);
+  if (!t) return;
+  t.type = newType;
+  // Update the select's class to match new type colour
+  const sel = document.querySelector(`select[onchange*="${id}"]`);
+  if (sel) { sel.className = `tag tag-${newType.toLowerCase()}`; }
+  saveLocal(); saveToDrive();
+}
+
 // ── SORT & FILTER ──
 let sortCol = 'date', sortDir = 'desc';
 
@@ -1985,11 +2010,13 @@ function getFilteredSortedTrades() {
   const dateFrom = document.getElementById('filterDateFrom')?.value || '';
   const dateTo   = document.getElementById('filterDateTo')?.value || '';
   const pnlType  = document.getElementById('filterPnlType')?.value || 'all';
+  const typeFilter = document.getElementById('filterType')?.value || 'all';
   const pnlMin   = parseFloat(document.getElementById('filterPnlMin')?.value);
   const pnlMax   = parseFloat(document.getElementById('filterPnlMax')?.value);
   let filtered = trades.filter(t => {
     if (dateFrom && t.date < dateFrom) return false;
     if (dateTo   && t.date > dateTo)   return false;
+    if (typeFilter !== 'all' && t.type !== typeFilter) return false;
     if (pnlType === 'profit' && t.pnl <= 0) return false;
     if (pnlType === 'loss'   && t.pnl >= 0) return false;
     if (!isNaN(pnlMin) && t.pnl < pnlMin) return false;
@@ -2007,21 +2034,36 @@ function getFilteredSortedTrades() {
   return filtered;
 }
 function updateFilterBadge() {
-  const dateFrom = document.getElementById('filterDateFrom')?.value || '';
-  const dateTo   = document.getElementById('filterDateTo')?.value || '';
-  const pnlType  = document.getElementById('filterPnlType')?.value || 'all';
-  const pnlMin   = document.getElementById('filterPnlMin')?.value || '';
-  const pnlMax   = document.getElementById('filterPnlMax')?.value || '';
+  const dateFrom   = document.getElementById('filterDateFrom')?.value || '';
+  const dateTo     = document.getElementById('filterDateTo')?.value || '';
+  const pnlType    = document.getElementById('filterPnlType')?.value || 'all';
+  const typeFilter = document.getElementById('filterType')?.value || 'all';
+  const pnlMin     = document.getElementById('filterPnlMin')?.value || '';
+  const pnlMax     = document.getElementById('filterPnlMax')?.value || '';
   const totalTrades = state.months[currentMonth]?.trades?.length || 0;
-  const shown = getFilteredSortedTrades().length;
-  const active = dateFrom || dateTo || pnlType !== 'all' || pnlMin || pnlMax;
+  const filtered = getFilteredSortedTrades();
+  const active = dateFrom || dateTo || pnlType !== 'all' || typeFilter !== 'all' || pnlMin || pnlMax;
   const badge = document.getElementById('filterActiveBadge');
-  if (badge) { badge.textContent = active ? `${shown} / ${totalTrades}` : ''; badge.className = 'filter-active-badge' + (active ? ' show' : ''); }
+  if (badge) { badge.textContent = active ? `${filtered.length} / ${totalTrades}` : ''; badge.className = 'filter-active-badge' + (active ? ' show' : ''); }
+
+  // Cumulative P&L for filtered trades (show when any filter active)
+  const cumPnlEl = document.getElementById('filterCumPnl');
+  if (cumPnlEl) {
+    if (active && filtered.length) {
+      const cum = filtered.reduce((s, t) => s + t.pnl, 0);
+      const sign = cum >= 0 ? '+' : '';
+      cumPnlEl.textContent = `Cumulative P&L: ${sign}₹${fmt(cum)}`;
+      cumPnlEl.style.color = cum >= 0 ? 'var(--green)' : 'var(--red)';
+    } else {
+      cumPnlEl.textContent = '';
+    }
+  }
 }
 function applyFiltersAndRender() { updateFilterBadge(); renderTrades(); }
 function clearFilters() {
   document.getElementById('filterDateFrom').value = '';
   document.getElementById('filterDateTo').value = '';
+  document.getElementById('filterType').value = 'all';
   document.getElementById('filterPnlType').value = 'all';
   document.getElementById('filterPnlMin').value = '';
   document.getElementById('filterPnlMax').value = '';
@@ -2048,7 +2090,7 @@ function renderTrades() {
     const cls = t.pnl >= 0 ? "pnl-pos" : "pnl-neg";
     return `<tr>
       <td style="font-weight:600;color:var(--text);cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;" onclick="openTradeChart('${t.scrip}', '${t.date}')" title="Click to view chart">${t.scrip}</td>
-      <td><span class="tag tag-${t.type.toLowerCase()}">${t.type}</span></td>
+      <td><select class="tag tag-${t.type.toLowerCase()}" onchange="updateTradeType('${t.id}', this.value)" style="border:none;outline:none;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;font-family:inherit;"><option value="BTST" ${t.type==='BTST'?'selected':''}>BTST</option><option value="INTRA" ${t.type==='INTRA'?'selected':''}>INTRA</option><option value="SWING" ${t.type==='SWING'?'selected':''}>SWING</option></select></td>
       <td>₹${fmt(t.buy)}</td>
       <td>${t.qty}</td>
       <td>₹${fmt(t.invested)}</td>
