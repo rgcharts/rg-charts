@@ -1206,18 +1206,17 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         <div class="a-card" style="display:flex;flex-direction:column;">
           <div class="a-card-title">
             <span>Account Value</span>
-          </div>
-          <!-- Top stat bar: same layout pattern as equity curve header -->
-          <div style="display:grid;grid-template-columns:auto 1fr;gap:12px 20px;align-items:end;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
-            <div>
-              <div class="sel-label">Withdrawal (₹)</div>
-              <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
-                oninput="onFYWithdrawalChange()"
-                style="width:140px;font-size:15px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:5px 9px;outline:none;font-family:inherit;margin-top:4px;" />
-            </div>
-            <div>
-              <div class="sel-label">Account Value</div>
-              <div id="acctValue" style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.4px;margin-top:4px;">—</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="text-align:right;">
+                <div class="sel-label" style="text-align:right;">Withdrawal (₹)</div>
+                <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
+                  oninput="onFYWithdrawalChange()"
+                  style="width:110px;font-size:12px;font-weight:700;color:var(--text);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;outline:none;font-family:inherit;margin-top:2px;text-align:right;" />
+              </div>
+              <div style="text-align:right;">
+                <div class="sel-label" style="text-align:right;">Account Value</div>
+                <div id="acctValue" style="font-size:13px;font-weight:800;color:var(--text);letter-spacing:-0.3px;margin-top:2px;white-space:nowrap;">—</div>
+              </div>
             </div>
           </div>
           <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartAcctValue"></canvas></div>
