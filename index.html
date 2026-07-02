@@ -1345,10 +1345,16 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </select>
       </div>
       <div class="fy-hm-stats" id="summaryFYStats"></div>
-      <div class="a-card">
-        <div class="a-card-title">FY Calendar — Monthly P&amp;L Heatmap</div>
-        <div class="fy-heatmap-wrap">
-          <div class="fy-heatmap" id="fyHeatmap"></div>
+      <div class="a-row a-row-2">
+        <div class="a-card">
+          <div class="a-card-title">FY Calendar — Monthly P&amp;L Heatmap</div>
+          <div class="fy-heatmap-wrap">
+            <div class="fy-heatmap" id="fyHeatmap"></div>
+          </div>
+        </div>
+        <div class="a-card" style="display:flex;flex-direction:column;">
+          <div class="a-card-title">Monthly P&amp;L — Bar Chart</div>
+          <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartMonthlyPnlBar"></canvas></div>
         </div>
       </div>
       <div class="a-card">
@@ -2501,7 +2507,7 @@ function renderCalendar() {
   renderDailyPnlChart();
 }
 
-let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null, chartAcctValueInst = null;
+let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null, chartAcctValueInst = null, chartMonthlyPnlBarInst = null;
 
 // Shared mild zero-baseline plugin — visible in both light & dark mode
 const zeroLinePlugin = {
@@ -3042,6 +3048,38 @@ function onSummaryOpen() {
   renderSummary();
 }
 function onSummaryFYChange() { renderSummary(); }
+function renderMonthlyPnlBar(monthRows) {
+  const ctx = document.getElementById("chartMonthlyPnlBar")?.getContext("2d"); if (!ctx) return;
+  if (chartMonthlyPnlBarInst) chartMonthlyPnlBarInst.destroy();
+
+  const MONTH_LABELS = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"];
+  const activRows = monthRows.map((r, i) => ({ label: MONTH_LABELS[i], pnl: r.pnl, hasTrades: r.trades.length > 0 }));
+  const labels = activRows.map(r => r.label);
+  const values = activRows.map(r => r.hasTrades ? parseFloat(r.pnl.toFixed(2)) : null);
+  const colors = values.map(v => v === null ? "rgba(99,102,241,0.1)" : v >= 0 ? "#10b981" : "#ef4444");
+
+  chartMonthlyPnlBarInst = new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Monthly P&L", data: values, backgroundColor: colors, borderRadius: 0, borderSkipped: false, maxBarThickness: 36 }] },
+    plugins: [zeroLinePlugin],
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
+          titleColor: "#6b7280", bodyColor: "#f0f2f5",
+          callbacks: { label: ctx2 => ctx2.raw !== null ? (ctx2.raw >= 0 ? "+" : "") + "₹" + fmt(ctx2.raw) : "No trades" }
+        }
+      },
+      scales: {
+        x: { ticks: { color: "#4b5563", font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => { const a = Math.abs(v); return "₹" + (a >= 100000 ? (v/100000).toFixed(1) + "L" : a >= 1000 ? (v/1000).toFixed(0) + "K" : v.toFixed(0)); } }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } }
+      }
+    }
+  });
+}
+
 function renderSummary() {
   const fyEndYear = parseInt(document.getElementById("summaryFYSelect").value || 2026);
   const fyLabel = "FY " + (fyEndYear - 1) + "-" + String(fyEndYear).slice(2);
@@ -3091,6 +3129,7 @@ function renderSummary() {
   hmHtml += `<div class="fy-hm-label">Win %</div>`;
   monthRows.forEach(r => { const val = r.winPct !== null ? r.winPct.toFixed(0) + '%' : '—'; const cls = r.winPct !== null ? (r.winPct >= 50 ? 'profit' : 'loss') : 'no-data'; hmHtml += `<div class="fy-hm-cell ${cls}">${val}</div>`; });
   document.getElementById("fyHeatmap").innerHTML = hmHtml;
+  renderMonthlyPnlBar(monthRows);
   let cumRun = 0, totTrades = 0, totWins = 0, totLosses = 0, totPnl = 0;
   let rows = '';
   monthRows.forEach(r => {
