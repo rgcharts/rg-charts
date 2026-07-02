@@ -1208,7 +1208,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <span>Account Value</span>
           </div>
           <!-- Top stat bar: same layout pattern as equity curve header -->
-          <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:12px 20px;align-items:end;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:12px 20px;align-items:end;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
             <div>
               <div class="sel-label">Withdrawal (₹)</div>
               <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
@@ -1218,10 +1218,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <div>
               <div class="sel-label">Account Value</div>
               <div id="acctValue" style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.4px;margin-top:4px;">—</div>
-            </div>
-            <div>
-              <div class="sel-label">Return on Capital</div>
-              <div id="acctValuePct" style="font-size:20px;font-weight:800;color:var(--muted);letter-spacing:-0.4px;margin-top:4px;">—</div>
             </div>
           </div>
           <div class="chart-wrap" style="flex:1;height:auto;min-height:220px;"><canvas id="chartAcctValue"></canvas></div>
@@ -1900,16 +1896,12 @@ function onFYWithdrawalChange() {
 }
 
 function updateAcctValue(fyCap, fyTotalPnl, fyWithdrawal) {
-  const acctVal = (fyCap + fyTotalPnl) - fyWithdrawal;
+  const acctVal = fyCap - (fyTotalPnl - fyWithdrawal);
   const acctEl  = document.getElementById("acctValue");
-  const pctEl   = document.getElementById("acctValuePct");
-  if (!acctEl || !pctEl) return;
-  if (!fyCap) { acctEl.textContent = "—"; acctEl.style.color = "var(--muted)"; pctEl.textContent = "—"; pctEl.style.color = "var(--muted)"; return; }
+  if (!acctEl) return;
+  if (!fyCap) { acctEl.textContent = "—"; acctEl.style.color = "var(--muted)"; return; }
   acctEl.textContent = "₹" + fmt(acctVal);
-  acctEl.style.color = acctVal >= fyCap ? "var(--green)" : "var(--red)";
-  const pct = ((acctVal - fyCap) / fyCap) * 100;
-  pctEl.textContent = (pct >= 0 ? "+" : "") + pct.toFixed(2) + "%";
-  pctEl.style.color = pct >= 0 ? "var(--green)" : "var(--red)";
+  acctEl.style.color = "var(--text)";
 }
 function onCapitalChange() {
   capital = parseFloat(document.getElementById("monthCapital").value) || 0;
@@ -2757,29 +2749,23 @@ function renderAcctValueChart(labels, equity, fyEndYear) {
 
   const fyCap = state.fyCapitals?.[fyEndYear] || 0;
   const fyWithdrawal = state.fyWithdrawal?.[fyEndYear] || 0;
-  // Account value at each point = FY Capital + cumulative P&L − withdrawal
-  const acctData = equity.map(e => parseFloat((fyCap + e - fyWithdrawal).toFixed(2)));
-  const lastAcct = acctData[acctData.length - 1] || fyCap;
-  const lineColor = lastAcct >= fyCap ? "#10b981" : "#ef4444";
-  const GREEN = "#10b981", RED = "#ef4444";
-  const GREEN_FILL = "rgba(16,185,129,0.18)", RED_FILL = "rgba(239,68,68,0.15)";
+  // Account Value = FY Capital − (cumulative P&L − withdrawal)
+  const acctData = equity.map(e => parseFloat((fyCap - (e - fyWithdrawal)).toFixed(2)));
+  const BLUE = "#6366f1";
+  const BLUE_FILL = "rgba(99,102,241,0.18)";
 
   chartAcctValueInst = new Chart(ctx, {
     type: "line",
     data: { labels, datasets: [{
       label: "Account Value", data: acctData,
-      borderColor: lineColor, borderWidth: 2,
+      borderColor: BLUE, borderWidth: 2,
       pointRadius: acctData.length > 30 ? 0 : 3, pointHoverRadius: 5,
-      pointBackgroundColor: ctx2 => (ctx2.raw ?? 0) >= fyCap ? GREEN : RED,
+      pointBackgroundColor: BLUE,
       fill: true,
       backgroundColor: ctx2 => {
         const g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 200);
-        g.addColorStop(0, lastAcct >= fyCap ? GREEN_FILL : RED_FILL);
+        g.addColorStop(0, BLUE_FILL);
         g.addColorStop(1, "rgba(0,0,0,0)"); return g;
-      },
-      segment: {
-        borderColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= fyCap ? GREEN : RED,
-        backgroundColor: ctx2 => ((ctx2.p0.parsed.y + ctx2.p1.parsed.y) / 2) >= fyCap ? GREEN_FILL : RED_FILL,
       },
       tension: 0
     }]},
@@ -2792,9 +2778,7 @@ function renderAcctValueChart(labels, equity, fyEndYear) {
         tooltip: {
           backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
           titleColor: "#6b7280", bodyColor: "#f0f2f5",
-          callbacks: {
-            label: ctx2 => "₹" + ctx2.raw.toLocaleString("en-IN", { maximumFractionDigits: 0 })
-          }
+          callbacks: { label: ctx2 => "₹" + ctx2.raw.toLocaleString("en-IN", { maximumFractionDigits: 0 }) }
         }
       },
       scales: {
