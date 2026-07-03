@@ -1210,6 +1210,9 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <span>Portfolio Value</span>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;">Withdrawal (₹)</span>
+              <select id="fyWithdrawalMonth" onchange="onFYWithdrawalMonthChange()"
+                style="font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px 6px;outline:none;font-family:inherit;cursor:pointer;">
+              </select>
               <input type="number" id="fyWithdrawalInput" placeholder="0" step="1"
                 oninput="onFYWithdrawalChange()"
                 style="width:72px;font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:2px 6px;outline:none;font-family:inherit;text-align:right;" />
@@ -1863,10 +1866,19 @@ function updateFYStats() {
   const brokerageEl = document.getElementById("fyBrokerage");
   if (brokerageEl && parseFloat(brokerageEl.value) !== fyBrokerage) brokerageEl.value = fyBrokerage || "";
 
-  // sync withdrawal input
+  // Populate and sync withdrawal month dropdown
+  const withdrawalMonthSel = document.getElementById("fyWithdrawalMonth");
+  if (withdrawalMonthSel) {
+    const curMonth = withdrawalMonthSel.value;
+    withdrawalMonthSel.innerHTML = fyMonths.map(mk => `<option value="${mk}" ${mk===curMonth?'selected':''}>${mk}</option>`).join('');
+    if (!curMonth && fyMonths.length) withdrawalMonthSel.value = fyMonths[0];
+  }
+  // Sync withdrawal input to currently selected month
   const withdrawalEl = document.getElementById("fyWithdrawalInput");
-  const fyWithdrawal = state.fyWithdrawal?.[fyEndYear] || 0;
-  if (withdrawalEl && parseFloat(withdrawalEl.value) !== fyWithdrawal) withdrawalEl.value = fyWithdrawal || "";
+  const selectedMonth = withdrawalMonthSel?.value || fyMonths[0] || '';
+  const monthWithdrawals = state.fyWithdrawal?.[fyEndYear] || {};
+  const totalWithdrawal = Object.values(monthWithdrawals).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+  if (withdrawalEl) withdrawalEl.value = monthWithdrawals[selectedMonth] || "";
 
   const fyPnlPct = fyCap ? (fyTotalPnl / fyCap) * 100 : 0;
   const pnlEl = document.getElementById("fyPnl"), pctEl = document.getElementById("fyPnlPct");
@@ -1875,25 +1887,38 @@ function updateFYStats() {
   pctEl.textContent = fyCap ? (fyPnlPct >= 0 ? "+" : "") + fyPnlPct.toFixed(2) + "%" : "—";
   pctEl.style.color = fyPnlPct > 0 ? "var(--green)" : fyPnlPct < 0 ? "var(--red)" : "var(--muted)";
 
-  updateAcctValue(fyCap, fyTotalPnl, fyWithdrawal);
+  updateAcctValue(fyCap, fyTotalPnl, totalWithdrawal);
+}
+
+function onFYWithdrawalMonthChange() {
+  // When month changes, load that month's saved withdrawal amount into the input
+  const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const month = document.getElementById("fyWithdrawalMonth").value;
+  const saved = state.fyWithdrawal?.[fyEndYear]?.[month] || "";
+  document.getElementById("fyWithdrawalInput").value = saved;
 }
 
 function onFYWithdrawalChange() {
   const fyEndYear = parseInt(document.getElementById("selFY")?.value || 2026);
+  const month = document.getElementById("fyWithdrawalMonth").value;
+  if (!month) return;
   const val = parseFloat(document.getElementById("fyWithdrawalInput").value) || 0;
   if (!state.fyWithdrawal) state.fyWithdrawal = {};
-  state.fyWithdrawal[fyEndYear] = val;
+  if (!state.fyWithdrawal[fyEndYear]) state.fyWithdrawal[fyEndYear] = {};
+  if (val) state.fyWithdrawal[fyEndYear][month] = val;
+  else delete state.fyWithdrawal[fyEndYear][month];
   saveLocal(); saveToDrive();
 
+  // Recalculate with total withdrawal across all months for this FY
   const fyCap       = state.fyCapitals?.[fyEndYear]  || 0;
   const fyBrokerage = state.fyBrokerage?.[fyEndYear] || 0;
   const fyMonths    = getFYMonths(fyEndYear);
   let fyGrossPnl = 0;
   fyMonths.forEach(mk => { const m = state.months[mk]; if (!m) return; fyGrossPnl += (m.trades || []).reduce((s, t) => s + t.pnl, 0); });
   const fyTotalPnl = fyGrossPnl - fyBrokerage;
-  updateAcctValue(fyCap, fyTotalPnl, val);
+  const totalWithdrawal = Object.values(state.fyWithdrawal[fyEndYear] || {}).reduce((s, v) => s + v, 0);
+  updateAcctValue(fyCap, fyTotalPnl, totalWithdrawal);
 
-  // Re-render account value chart with new withdrawal
   const allTrades = fyMonths.flatMap(mk => (state.months[mk]?.trades || []));
   const { labels, equity } = calcEquityAndDD(allTrades);
   renderAcctValueChart(labels, equity, fyEndYear);
@@ -2781,7 +2806,8 @@ function renderAcctValueChart(labels, equity, fyEndYear) {
   if (chartAcctValueInst) chartAcctValueInst.destroy();
 
   const fyCap = state.fyCapitals?.[fyEndYear] || 0;
-  const fyWithdrawal = state.fyWithdrawal?.[fyEndYear] || 0;
+  const monthWithdrawals = state.fyWithdrawal?.[fyEndYear] || {};
+  const fyWithdrawal = Object.values(monthWithdrawals).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   // Account Value = FY Capital − (cumulative P&L − withdrawal)
   const acctData = equity.map(e => parseFloat((fyCap + (e - fyWithdrawal)).toFixed(2)));
   const BLUE = "#6366f1";
