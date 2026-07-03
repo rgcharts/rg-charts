@@ -215,7 +215,7 @@ body {
 
 /* ── FY / MONTH SELECTORS ── */
 .selectors-row {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  display: grid; grid-template-columns: 1fr 1fr 2.5fr; gap: 12px;
   margin-bottom: 20px;
 }
 .sel-card {
@@ -711,7 +711,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
   .a-row-2, .a-row-3 { grid-template-columns: 1fr; }
   .selectors-row { grid-template-columns: 1fr; }
-  #fyStatsGrid { grid-template-columns: repeat(3,1fr) !important; }
+  #fyStatsGrid { overflow-x: auto; }
   .sidebar { width: 56px; padding: 16px 6px; }
   .sidebar-tab span { display: none; }
   .sidebar-dot { display: none; }
@@ -1033,86 +1033,96 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 
   <!-- FY Row -->
   <div class="selectors-row" style="margin-bottom:12px">
-    <div class="sel-card">
-      <div class="sel-label">Trading Financial Year</div>
-      <select id="selFY" onchange="onFYChange()" style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
-        <option value="2025">FY 2024-25</option>
-        <option value="2026" selected>FY 2025-26</option>
-        <option value="2027">FY 2026-27</option>
-        <option value="2028">FY 2027-28</option>
-        <option value="2029">FY 2028-29</option>
-        <option value="2030">FY 2029-30</option>
-        <option value="2031">FY 2030-31</option>
-        <option value="2032">FY 2031-32</option>
-        <option value="2033">FY 2032-33</option>
-        <option value="2034">FY 2033-34</option>
-        <option value="2035">FY 2034-35</option>
-      </select>
-    </div>
-    <div class="sel-card" id="fyStatsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;align-items:center;">
+    <!-- Card 1: Financial Year + FY Capital -->
+    <div class="sel-card" style="display:flex;flex-direction:column;justify-content:space-between;">
       <div>
+        <div class="sel-label">Trading Financial Year</div>
+        <select id="selFY" onchange="onFYChange()" style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;-webkit-appearance:none;cursor:pointer;">
+          <option value="2025">FY 2024-25</option>
+          <option value="2026" selected>FY 2025-26</option>
+          <option value="2027">FY 2026-27</option>
+          <option value="2028">FY 2027-28</option>
+          <option value="2029">FY 2028-29</option>
+          <option value="2030">FY 2029-30</option>
+          <option value="2031">FY 2030-31</option>
+          <option value="2032">FY 2031-32</option>
+          <option value="2033">FY 2032-33</option>
+          <option value="2034">FY 2033-34</option>
+          <option value="2035">FY 2034-35</option>
+        </select>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:14px;">
         <div class="sel-label">FY Capital (₹)</div>
-        <input type="number" id="fyCapital" placeholder="e.g. 500000"
-          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
-          oninput="onFYCapitalChange()" />
-      </div>
-      <div>
-        <div class="sel-label">Gross FY P&amp;L (₹)</div>
-        <div id="fyGrossPnl" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
-      </div>
-      <div>
-        <div class="sel-label">Gross FY Return</div>
-        <div id="fyGrossPct" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
-      </div>
-      <div>
-        <div class="sel-label">Net FY P&amp;L (₹)</div>
-        <div id="fyPnl" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
-      </div>
-      <div>
-        <div class="sel-label">Net FY Return</div>
-        <div id="fyPnlPct" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
-      </div>
-      <div>
-        <div class="sel-label">Brokerage (₹)</div>
-        <input type="number" id="fyBrokerage" placeholder="0"
-          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
-          oninput="onFYBrokerageChange()" />
+        <input type="number" id="fyCapital" placeholder="e.g. 500000" oninput="onFYCapitalChange()"
+          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;" />
       </div>
     </div>
-  </div>
 
-  <!-- Month + Capital -->
-  <div class="selectors-row">
-    <div class="sel-card" style="position:relative">
-      <div class="sel-label">Trading Month</div>
-      <div id="monthPickerDisplay" onclick="toggleMonthPicker()"
-        style="font-size:22px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;">
-        <span id="monthPickerLabel"></span>
-        <i class="ti ti-chevron-down" style="font-size:13px;color:var(--muted)"></i>
+    <!-- Card 2: Trading Month + Month Capital -->
+    <div class="sel-card" style="display:flex;flex-direction:column;justify-content:space-between;position:relative;">
+      <div>
+        <div class="sel-label">Trading Month</div>
+        <div id="monthPickerDisplay" onclick="toggleMonthPicker()"
+          style="font-size:22px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:8px;user-select:none;">
+          <span id="monthPickerLabel"></span>
+          <i class="ti ti-chevron-down" style="font-size:13px;color:var(--muted)"></i>
+        </div>
+        <div id="monthPickerDrop" class="month-picker-drop">
+          <div id="mpYearView" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <button onclick="mpYearScroll(-12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
+              <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Select Year</span>
+              <button onclick="mpYearScroll(12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
+            </div>
+            <div id="mpYearGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
+          </div>
+          <div id="mpMonthView">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <button onclick="mpYearStep(-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
+              <button onclick="showYearView()" style="background:none;border:none;color:var(--accent3);cursor:pointer;font-size:14px;font-weight:700;padding:2px 8px;border-radius:6px;text-decoration:underline;text-underline-offset:2px;font-family:inherit;" id="mpYearBtn">2026 ↩</button>
+              <button onclick="mpYearStep(1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
+            </div>
+            <div id="mpMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
+          </div>
+        </div>
       </div>
-      <div id="monthPickerDrop" class="month-picker-drop">
-        <div id="mpYearView" style="display:none;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <button onclick="mpYearScroll(-12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
-            <span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Select Year</span>
-            <button onclick="mpYearScroll(12)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
-          </div>
-          <div id="mpYearGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
-        </div>
-        <div id="mpMonthView">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <button onclick="mpYearStep(-1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">‹</button>
-            <button onclick="showYearView()" style="background:none;border:none;color:var(--accent3);cursor:pointer;font-size:14px;font-weight:700;padding:2px 8px;border-radius:6px;text-decoration:underline;text-underline-offset:2px;font-family:inherit;" id="mpYearBtn">2026 ↩</button>
-            <button onclick="mpYearStep(1)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px;">›</button>
-          </div>
-          <div id="mpMonthGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;"></div>
-        </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:14px;">
+        <div class="sel-label">Month Capital (₹)</div>
+        <input type="number" id="monthCapital" placeholder="e.g. 500000" oninput="onCapitalChange()"
+          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;" />
       </div>
     </div>
-    <div class="sel-card">
-      <div class="sel-label">Month Capital (₹)</div>
-      <input type="number" id="monthCapital" placeholder="e.g. 500000" oninput="onCapitalChange()"
-        style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;" />
+
+    <!-- Card 3: FY Performance metrics -->
+    <div class="sel-card" id="fyStatsGrid">
+      <div class="sel-label" style="margin-bottom:14px;">FY Performance</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:start;">
+        <div style="padding-right:16px;border-right:1px solid var(--border);">
+          <div class="sel-label" style="font-size:10px;">Gross P&L</div>
+          <div id="fyGrossPnl" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+        </div>
+        <div style="padding:0 16px;border-right:1px solid var(--border);">
+          <div class="sel-label" style="font-size:10px;">Gross Return</div>
+          <div id="fyGrossPct" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+        </div>
+        <div style="padding:0 16px;border-right:1px solid var(--border);">
+          <div class="sel-label" style="font-size:10px;">Net P&L</div>
+          <div id="fyPnl" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+        </div>
+        <div style="padding:0 16px;border-right:1px solid var(--border);">
+          <div class="sel-label" style="font-size:10px;">Net Return</div>
+          <div id="fyPnlPct" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+        </div>
+        <div style="padding-left:16px;">
+          <div class="sel-label" style="font-size:10px;">Brokerage (₹)</div>
+          <input type="number" id="fyBrokerage" placeholder="0" oninput="onFYBrokerageChange()"
+            style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;margin-top:4px;" />
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:10px;display:flex;gap:1.5rem;flex-wrap:wrap;">
+        <span style="font-size:11px;color:var(--muted);">Net P&L = Gross P&L − Brokerage</span>
+        <span id="fyBreakdownLine" style="font-size:11px;color:var(--muted);"></span>
+      </div>
     </div>
   </div>
 
@@ -1903,6 +1913,13 @@ function updateFYStats() {
   pnlEl.style.color = fyTotalPnl > 0 ? "var(--green)" : fyTotalPnl < 0 ? "var(--red)" : "var(--muted)";
   pctEl.textContent = fyCap ? (fyPnlPct >= 0 ? "+" : "") + fyPnlPct.toFixed(2) + "%" : "—";
   pctEl.style.color = fyPnlPct > 0 ? "var(--green)" : fyPnlPct < 0 ? "var(--red)" : "var(--muted)";
+
+  // Breakdown line in performance card
+  const breakdownEl = document.getElementById("fyBreakdownLine");
+  if (breakdownEl) {
+    const brokerageVal = state.fyBrokerage?.[fyEndYear] || 0;
+    breakdownEl.textContent = fyGrossPnl !== 0 ? `₹${fmt(fyGrossPnl)} − ₹${fmt(brokerageVal)} = ₹${fmt(fyTotalPnl)}` : "";
+  }
 
   updateAcctValue(fyCap, fyTotalPnl, totalWithdrawal);
 }
