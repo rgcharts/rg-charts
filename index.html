@@ -711,7 +711,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
   .metrics-grid { grid-template-columns: repeat(2,1fr) !important; }
   .a-row-2, .a-row-3 { grid-template-columns: 1fr; }
   .selectors-row { grid-template-columns: 1fr; }
-  #fyStatsGrid { grid-template-columns: 1fr 1fr !important; }
+  #fyStatsGrid { grid-template-columns: repeat(3,1fr) !important; }
   .sidebar { width: 56px; padding: 16px 6px; }
   .sidebar-tab span { display: none; }
   .sidebar-dot { display: none; }
@@ -1049,25 +1049,33 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         <option value="2035">FY 2034-35</option>
       </select>
     </div>
-    <div class="sel-card" id="fyStatsGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;align-items:center;">
+    <div class="sel-card" id="fyStatsGrid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:16px;align-items:center;">
       <div>
         <div class="sel-label">FY Capital (₹)</div>
         <input type="number" id="fyCapital" placeholder="e.g. 500000"
-          style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
+          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
           oninput="onFYCapitalChange()" />
       </div>
       <div>
-        <div class="sel-label">FY P&amp;L (₹)</div>
-        <div id="fyPnl" style="font-size:22px;font-weight:700;color:var(--muted);">—</div>
+        <div class="sel-label">Gross FY P&amp;L (₹)</div>
+        <div id="fyGrossPnl" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
       </div>
       <div>
-        <div class="sel-label">FY Return</div>
-        <div id="fyPnlPct" style="font-size:22px;font-weight:700;color:var(--muted);">—</div>
+        <div class="sel-label">Gross FY Return</div>
+        <div id="fyGrossPct" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
+      </div>
+      <div>
+        <div class="sel-label">Net FY P&amp;L (₹)</div>
+        <div id="fyPnl" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
+      </div>
+      <div>
+        <div class="sel-label">Net FY Return</div>
+        <div id="fyPnlPct" style="font-size:18px;font-weight:700;color:var(--muted);">—</div>
       </div>
       <div>
         <div class="sel-label">Brokerage (₹)</div>
         <input type="number" id="fyBrokerage" placeholder="0"
-          style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
+          style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;"
           oninput="onFYBrokerageChange()" />
       </div>
     </div>
@@ -1880,7 +1888,16 @@ function updateFYStats() {
   const totalWithdrawal = Object.values(monthWithdrawals).reduce((s, v) => s + (parseFloat(v) || 0), 0);
   if (withdrawalEl) withdrawalEl.value = monthWithdrawals[selectedMonth] || "";
 
-  const fyPnlPct = fyCap ? (fyTotalPnl / fyCap) * 100 : 0;
+  const fyPnlPct      = fyCap ? (fyTotalPnl   / fyCap) * 100 : 0;
+  const fyGrossPnlPct = fyCap ? (fyGrossPnl   / fyCap) * 100 : 0;
+
+  // Gross FY P&L
+  const grossEl  = document.getElementById("fyGrossPnl");
+  const grossPctEl = document.getElementById("fyGrossPct");
+  if (grossEl) { grossEl.textContent  = fyGrossPnl !== 0 ? (fyGrossPnl >= 0 ? "+" : "") + "₹" + fmt(fyGrossPnl) : "—"; grossEl.style.color  = fyGrossPnl > 0 ? "var(--green)" : fyGrossPnl < 0 ? "var(--red)" : "var(--muted)"; }
+  if (grossPctEl) { grossPctEl.textContent = fyCap ? (fyGrossPnlPct >= 0 ? "+" : "") + fyGrossPnlPct.toFixed(2) + "%" : "—"; grossPctEl.style.color = fyGrossPnlPct > 0 ? "var(--green)" : fyGrossPnlPct < 0 ? "var(--red)" : "var(--muted)"; }
+
+  // Net FY P&L
   const pnlEl = document.getElementById("fyPnl"), pctEl = document.getElementById("fyPnlPct");
   pnlEl.textContent = fyTotalPnl !== 0 ? (fyTotalPnl >= 0 ? "+" : "") + "₹" + fmt(fyTotalPnl) : "—";
   pnlEl.style.color = fyTotalPnl > 0 ? "var(--green)" : fyTotalPnl < 0 ? "var(--red)" : "var(--muted)";
