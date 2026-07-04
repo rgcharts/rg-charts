@@ -1099,30 +1099,27 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:start;">
         <div style="padding-right:16px;border-right:1px solid var(--border);">
           <div class="sel-label" style="font-size:10px;">Gross P&L</div>
-          <div id="fyGrossPnl" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+          <div id="fyGrossPnl" style="font-size:22px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
         </div>
         <div style="padding:0 16px;border-right:1px solid var(--border);">
           <div class="sel-label" style="font-size:10px;">Gross Return</div>
-          <div id="fyGrossPct" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+          <div id="fyGrossPct" style="font-size:22px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
         </div>
         <div style="padding:0 16px;border-right:1px solid var(--border);">
           <div class="sel-label" style="font-size:10px;">Net P&L</div>
-          <div id="fyPnl" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+          <div id="fyPnl" style="font-size:22px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
         </div>
         <div style="padding:0 16px;border-right:1px solid var(--border);">
           <div class="sel-label" style="font-size:10px;">Net Return</div>
-          <div id="fyPnlPct" style="font-size:18px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
+          <div id="fyPnlPct" style="font-size:22px;font-weight:700;color:var(--muted);margin-top:4px;">—</div>
         </div>
         <div style="padding-left:16px;">
           <div class="sel-label" style="font-size:10px;">Brokerage (₹)</div>
           <input type="number" id="fyBrokerage" placeholder="0" oninput="onFYBrokerageChange()"
-            style="width:100%;font-size:18px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;margin-top:4px;" />
+            style="width:100%;font-size:22px;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;padding:0;font-family:inherit;margin-top:4px;" />
         </div>
       </div>
-      <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:10px;display:flex;gap:1.5rem;flex-wrap:wrap;">
-        <span style="font-size:11px;color:var(--muted);">Net P&L = Gross P&L − Brokerage</span>
-        <span id="fyBreakdownLine" style="font-size:11px;color:var(--muted);"></span>
-      </div>
+
     </div>
   </div>
 
@@ -1914,12 +1911,6 @@ function updateFYStats() {
   pctEl.textContent = fyCap ? (fyPnlPct >= 0 ? "+" : "") + fyPnlPct.toFixed(2) + "%" : "—";
   pctEl.style.color = fyPnlPct > 0 ? "var(--green)" : fyPnlPct < 0 ? "var(--red)" : "var(--muted)";
 
-  // Breakdown line in performance card
-  const breakdownEl = document.getElementById("fyBreakdownLine");
-  if (breakdownEl) {
-    const brokerageVal = state.fyBrokerage?.[fyEndYear] || 0;
-    breakdownEl.textContent = fyGrossPnl !== 0 ? `₹${fmt(fyGrossPnl)} − ₹${fmt(brokerageVal)} = ₹${fmt(fyTotalPnl)}` : "";
-  }
 
   updateAcctValue(fyCap, fyTotalPnl, totalWithdrawal);
 }
