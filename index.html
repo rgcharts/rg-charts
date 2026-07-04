@@ -1171,9 +1171,10 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
       <div class="a-row a-row-3">
         <div class="a-card">
           <div class="a-card-title">Strategy split</div>
-          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr 1fr;">
             <div class="sm"><div class="sm-label">BTST</div><div class="sm-val" id="aBtst">0</div></div>
             <div class="sm"><div class="sm-label">INTRA</div><div class="sm-val" id="aIntra">0</div></div>
+            <div class="sm"><div class="sm-label">SWING</div><div class="sm-val" id="aSwing">0</div></div>
           </div>
         </div>
         <div class="a-card">
@@ -2184,6 +2185,7 @@ function updateMetrics() {
 
   document.getElementById("aBtst").textContent = trades.filter(t => t.type === "BTST").length;
   document.getElementById("aIntra").textContent = trades.filter(t => t.type === "INTRA").length;
+  document.getElementById("aSwing").textContent = trades.filter(t => t.type === "SWING").length;
   const best = trades.length ? Math.max(...trades.map(t => t.pnl)) : 0;
   const worst = trades.length ? Math.min(...trades.map(t => t.pnl)) : 0;
   document.getElementById("aBest").textContent = "+₹" + fmt(best);
