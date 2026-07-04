@@ -3684,7 +3684,8 @@ function populateMonthFilter() {
   if (!sel) return;
   const months = Object.keys(state.months).filter(mk => (state.months[mk].trades || []).some(t => Math.abs(t.pnl) >= REVIEW_THRESHOLD));
   months.sort((a,b) => new Date("01 " + b) - new Date("01 " + a));
-  const cur = sel.value;
+  // Default to currentMonth on first load; preserve user selection after that
+  const cur = (sel.value && sel.value !== "all") ? sel.value : currentMonth;
   sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m}" ${m===cur?"selected":""}>${m}</option>`).join("");
 }
 
