@@ -980,6 +980,11 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
     </div>
   </div>
 
+  <!-- Centered welcome greeting -->
+  <div style="position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;">
+    <span id="navWelcome" style="font-size:22px;font-weight:600;color:rgba(199,210,254,0.45);letter-spacing:1px;font-family:'Century Gothic','Avant Garde',Futura,sans-serif;white-space:nowrap;"></span>
+  </div>
+
   <div class="nav-right">
     <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">
       <i class="ti ti-moon" id="themeIcon"></i> <span id="themeLabel">Light</span>
@@ -1186,9 +1191,10 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
         <div class="a-card">
           <div class="a-card-title">Edge metrics</div>
-          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr 1fr;">
             <div class="sm"><div class="sm-label">Win streak</div><div class="sm-val" id="aStreak">0</div></div>
             <div class="sm"><div class="sm-label">Profit factor</div><div class="sm-val" id="aPF">—</div></div>
+            <div class="sm"><div class="sm-label">Expectancy</div><div class="sm-val" id="aExpectancy">—</div></div>
           </div>
         </div>
       </div>
@@ -1687,6 +1693,7 @@ async function signOut() {
 
 function renderNavUser(user) {
   const badge = document.getElementById("authBadge");
+  const welcomeEl = document.getElementById("navWelcome");
   const loginPage = document.getElementById("loginPage");
   if (user) {
     if (loginPage) {
@@ -1694,11 +1701,14 @@ function renderNavUser(user) {
       loginPage.style.opacity = "0";
       setTimeout(() => { loginPage.style.display = "none"; }, 400);
     }
+    const firstName = user.displayName?.split(" ")[0] || "Trader";
+    if (welcomeEl) welcomeEl.textContent = `Hello ${firstName} !`;
     if (badge) badge.innerHTML = `
       <img src="${user.photoURL}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">
-      <span style="font-size:11px;font-weight:600;">${user.displayName?.split(" ")[0] || "User"}</span>
+      <span style="font-size:11px;font-weight:600;">${firstName}</span>
       <button onclick="signOut()" style="background:none;border:none;font-size:10px;color:rgba(199,210,254,0.6);cursor:pointer;padding:0;font-family:inherit;">Sign out</button>`;
   } else {
+    if (welcomeEl) welcomeEl.textContent = "";
     if (loginPage) { loginPage.style.display = "flex"; loginPage.style.opacity = "1"; }
     if (badge) badge.innerHTML = "";
   }
@@ -2196,6 +2206,22 @@ function updateMetrics() {
   const grossWin = wins.reduce((s, t) => s + t.pnl, 0);
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
   document.getElementById("aPF").textContent = grossLoss ? (grossWin / grossLoss).toFixed(2) : grossWin > 0 ? "∞" : "—";
+
+  // Expectancy = (Win Rate × Avg Winner) + (Loss Rate × Avg Loser)
+  const expEl = document.getElementById("aExpectancy");
+  if (expEl) {
+    if (trades.length) {
+      const winRate  = wins.length / trades.length;
+      const lossRate = losses.length / trades.length;
+      const avgWin   = wins.length   ? grossWin  / wins.length   : 0;
+      const avgLoss  = losses.length ? -(Math.abs(losses.reduce((s,t) => s+t.pnl,0)) / losses.length) : 0;
+      const exp = (winRate * avgWin) + (lossRate * avgLoss);
+      expEl.textContent = (exp >= 0 ? "+" : "") + "₹" + fmt(Math.round(exp));
+      expEl.className = "sm-val " + (exp > 0 ? "pos" : exp < 0 ? "neg" : "");
+    } else {
+      expEl.textContent = "—"; expEl.className = "sm-val";
+    }
+  }
 
   renderBars(trades);
   if (document.getElementById("panelAnalytics").classList.contains("active")) renderCalendar();
