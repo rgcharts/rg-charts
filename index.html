@@ -101,13 +101,17 @@ body {
   margin-right: 36px; flex-shrink: 0; cursor: pointer;
 }
 .nav-brand-mark {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(99,102,241,0.2);
+  border: 1.5px solid rgba(99,102,241,0.5);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: #fff; letter-spacing: -0.5px;
+  flex-shrink: 0;
 }
-.nav-brand-name { font-size: 14px; font-weight: 700; color: #f5f5ff; letter-spacing: -0.3px; }
-.nav-brand-sub  { font-size: 10px; color: rgba(199,210,254,0.75); letter-spacing: 0.4px; margin-top: -1px; }
+.nav-brand-name {
+  font-size: 15px; font-weight: 900; color: #f0f0ff; letter-spacing: 0.5px;
+}
+.nav-brand-name span { color: #a5b4fc; font-weight: 300; }
+.nav-brand-sub  { font-size: 9px; color: rgba(165,180,252,0.55); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
 
 .nav-tabs { display: flex; align-items: center; gap: 2px; flex: 1; }
 .nav-tab {
@@ -973,10 +977,19 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 
 <nav class="nav">
   <div class="nav-brand" onclick="saveToDrive()" title="Click to save your changes" style="cursor:pointer;">
-    <div class="nav-brand-mark">RG</div>
+    <div class="nav-brand-mark">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <rect x="3" y="11" width="4" height="7" rx="0.8" fill="#fca5a5"/>
+        <line x1="5" y1="8" x2="5" y2="19" stroke="#fca5a5" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="9" y="6" width="4" height="9" rx="0.8" fill="#6ee7b7"/>
+        <line x1="11" y1="3" x2="11" y2="16" stroke="#6ee7b7" stroke-width="1.2" stroke-linecap="round"/>
+        <rect x="15" y="9" width="4" height="6" rx="0.8" fill="#93c5fd"/>
+        <line x1="17" y1="6" x2="17" y2="16" stroke="#93c5fd" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+    </div>
     <div>
-      <div class="nav-brand-name">RG CHARTS</div>
-      <div class="nav-brand-sub">TRADING JOURNAL</div>
+      <div class="nav-brand-name">RG <span>CHARTS</span></div>
+      <div class="nav-brand-sub">Trading Journal</div>
     </div>
   </div>
 
