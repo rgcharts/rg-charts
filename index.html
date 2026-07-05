@@ -462,7 +462,6 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 .a-row { display: grid; gap: 12px; }
 .a-row-2 { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); align-items: stretch; }
 .a-row-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: stretch; }
-.a-row-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: stretch; }
 .a-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-xl); padding: 20px 22px;
@@ -1199,12 +1198,13 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
             <div class="sm"><div class="sm-label">Worst</div><div class="sm-val neg" id="aWorst">₹0</div></div>
           </div>
         </div>
-        <div class="a-card" style="display:flex;flex-direction:column;">
-          <div class="a-card-title">
-            <span>My Return vs Nifty Smallcap 100</span>
-            <span id="scmpStatus" style="font-size:10px;color:var(--muted);font-weight:400;"></span>
+        <div class="a-card">
+          <div class="a-card-title">Edge metrics</div>
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr 1fr;">
+            <div class="sm"><div class="sm-label">Win streak</div><div class="sm-val" id="aStreak">0</div></div>
+            <div class="sm"><div class="sm-label">Profit factor</div><div class="sm-val" id="aPF">—</div></div>
+            <div class="sm"><div class="sm-label">Expectancy</div><div class="sm-val" id="aExpectancy">—</div></div>
           </div>
-          <div class="chart-wrap" style="flex:1;min-height:80px;"><canvas id="chartScmpBar"></canvas></div>
         </div>
       </div>
 
@@ -1988,7 +1988,6 @@ function loadMonth() {
   const lbl = document.getElementById("monthPickerLabel"); if (lbl) lbl.textContent = currentMonth;
   const _psEl = document.getElementById("pageSubtitle"); if (_psEl) _psEl.textContent = currentMonth + (capital ? " · Capital ₹" + fmt(capital) : "");
   renderTrades(); updateMetrics(); updateFYStats();
-  if (document.getElementById("panelAnalytics").classList.contains("active")) renderScmpComparison();
 }
 
 function recalc() {
@@ -2624,7 +2623,7 @@ function renderCalendar() {
   renderDailyPnlChart();
 }
 
-let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null, chartAcctValueInst = null, chartMonthlyPnlBarInst = null, chartScmpBarInst = null;
+let chartMonthInst = null, chartFYInst = null, chartFYDDInst = null, chartDailyPnlInst = null, chartAcctValueInst = null, chartMonthlyPnlBarInst = null;
 
 // Shared mild zero-baseline plugin — visible in both light & dark mode
 const zeroLinePlugin = {
@@ -2728,84 +2727,6 @@ function calcEquityAndDD(trades) {
     labels.push(t.date?.slice(5) || t.scrip); equity.push(parseFloat(run.toFixed(2))); dd.push(parseFloat(d.toFixed(2)));
   });
   return { labels, equity, dd };
-}
-
-// ── NIFTY SMALLCAP 100 COMPARISON ──
-async function renderScmpComparison() {
-  const ctx = document.getElementById("chartScmpBar")?.getContext("2d"); if (!ctx) return;
-  const statusEl = document.getElementById("scmpStatus");
-
-  // Compute my monthly return %
-  const m = state.months[currentMonth];
-  const trades = m?.trades || [];
-  const capital = m?.capital || 0;
-  const myPnl = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-  const myReturn = capital > 0 ? (myPnl / capital) * 100 : null;
-
-  // Parse currentMonth to get date range for Yahoo Finance
-  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const parts = currentMonth.split(" ");
-  const mi = MONTHS.indexOf(parts[0]);
-  const yr = parseInt(parts[1]);
-  if (mi === -1 || isNaN(yr)) return;
-
-  const monthStart = new Date(yr, mi, 1);
-  const monthEnd   = new Date(yr, mi + 1, 0);
-  const p1 = Math.floor(monthStart.getTime() / 1000);
-  const p2 = Math.floor(monthEnd.getTime() / 1000) + 86400;
-
-  if (statusEl) statusEl.textContent = "Fetching…";
-
-  let scmpReturn = null;
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/%5ECNXSC?interval=1mo&period1=${p1}&period2=${p2}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const result = data?.chart?.result?.[0];
-    if (result) {
-      const open  = result.indicators?.quote?.[0]?.open?.[0];
-      const close = result.indicators?.quote?.[0]?.close?.[0];
-      if (open && close) scmpReturn = ((close - open) / open) * 100;
-    }
-  } catch (e) { /* silent fail */ }
-
-  if (statusEl) statusEl.textContent = scmpReturn !== null ? currentMonth : "Data unavailable";
-
-  if (chartScmpBarInst) chartScmpBarInst.destroy();
-
-  const labels = ["My Return", "Smallcap 100"];
-  const values = [myReturn ?? 0, scmpReturn ?? 0];
-  const colors = values.map(v => v >= 0 ? "#10b981" : "#ef4444");
-
-  chartScmpBarInst = new Chart(ctx, {
-    type: "bar",
-    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 0, maxBarThickness: 48, borderSkipped: false }] },
-    plugins: [zeroLinePlugin],
-    options: {
-      responsive: true, maintainAspectRatio: false, indexAxis: "x",
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
-          titleColor: "#6b7280", bodyColor: "#f0f2f5",
-          callbacks: {
-            label: ctx2 => {
-              const v = ctx2.raw;
-              const diff = myReturn !== null && scmpReturn !== null ? (myReturn - scmpReturn) : null;
-              const extra = ctx2.dataIndex === 0 && diff !== null ? ` (${diff >= 0 ? "+" : ""}${diff.toFixed(2)}% vs index)` : "";
-              return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%${extra}`;
-            }
-          }
-        },
-        // Show diff annotation between the two bars
-      },
-      scales: {
-        x: { ticks: { color: "#6b7280", font: { size: 11, weight: "600" } }, grid: { display: false }, border: { display: false } },
-        y: { ticks: { color: "#4b5563", font: { size: 9 }, callback: v => v.toFixed(1) + "%" }, grid: { color: "rgba(255,255,255,0.05)" }, border: { display: false } }
-      },
-      animation: { duration: 400 }
-    }
-  });
 }
 
 function renderMonthCurve() {
@@ -3247,7 +3168,7 @@ function onAnalyticsOpen() {
   calNavDate = new Date(parseInt(parts[1]), mi, 1);
   const fyVal = document.getElementById("selFY")?.value || "2026";
   if (document.getElementById("fySelect")) document.getElementById("fySelect").value = fyVal;
-  updateFYStats(); renderCalendar(); renderScmpComparison();
+  updateFYStats(); renderCalendar();
   setTimeout(() => { renderMonthCurve(); renderFYCurves(); }, 50);
 }
 
