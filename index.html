@@ -1200,10 +1200,9 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
         </div>
         <div class="a-card">
           <div class="a-card-title">Edge metrics</div>
-          <div class="stats-mini" style="grid-template-columns:1fr 1fr 1fr;">
+          <div class="stats-mini" style="grid-template-columns:1fr 1fr;">
             <div class="sm"><div class="sm-label">Win streak</div><div class="sm-val" id="aStreak">0</div></div>
             <div class="sm"><div class="sm-label">Profit factor</div><div class="sm-val" id="aPF">—</div></div>
-            <div class="sm"><div class="sm-label">Expectancy</div><div class="sm-val" id="aExpectancy">—</div></div>
           </div>
         </div>
       </div>
@@ -2212,22 +2211,6 @@ function updateMetrics() {
   const grossWin = wins.reduce((s, t) => s + t.pnl, 0);
   const grossLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
   document.getElementById("aPF").textContent = grossLoss ? (grossWin / grossLoss).toFixed(2) : grossWin > 0 ? "∞" : "—";
-
-  // Expectancy = (Win Rate × Avg Winner) + (Loss Rate × Avg Loser)
-  const expEl = document.getElementById("aExpectancy");
-  if (expEl) {
-    if (trades.length) {
-      const winRate  = wins.length / trades.length;
-      const lossRate = losses.length / trades.length;
-      const avgWin   = wins.length   ? grossWin  / wins.length   : 0;
-      const avgLoss  = losses.length ? -(Math.abs(losses.reduce((s,t) => s+t.pnl,0)) / losses.length) : 0;
-      const exp = (winRate * avgWin) + (lossRate * avgLoss);
-      expEl.textContent = (exp >= 0 ? "+" : "") + "₹" + fmt(Math.round(exp));
-      expEl.className = "sm-val " + (exp > 0 ? "pos" : exp < 0 ? "neg" : "");
-    } else {
-      expEl.textContent = "—"; expEl.className = "sm-val";
-    }
-  }
 
   renderBars(trades);
   if (document.getElementById("panelAnalytics").classList.contains("active")) renderCalendar();
@@ -3722,9 +3705,11 @@ function populateMonthFilter() {
   if (!sel) return;
   const months = Object.keys(state.months).filter(mk => (state.months[mk].trades || []).some(t => Math.abs(t.pnl) >= REVIEW_THRESHOLD));
   months.sort((a,b) => new Date("01 " + b) - new Date("01 " + a));
-  // Default to currentMonth on first load; preserve user selection after that
-  const cur = (sel.value && sel.value !== "all") ? sel.value : currentMonth;
+  // Default to currentMonth only on first-ever populate (no options yet); otherwise preserve the user's current selection, including "all"
+  const isFirstPopulate = sel.options.length === 0;
+  const cur = isFirstPopulate ? currentMonth : sel.value;
   sel.innerHTML = '<option value="all">All months</option>' + months.map(m => `<option value="${m}" ${m===cur?"selected":""}>${m}</option>`).join("");
+  if (cur === "all") sel.value = "all";
 }
 
 function populateReasonFilter() {
