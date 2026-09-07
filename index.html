@@ -1271,7 +1271,7 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
               <span id="fyEqGrossVal" style="color:var(--muted);">—</span>
             </div>
             <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;">
-              <span style="width:12px;height:3px;border-radius:2px;background:#3b82f6;display:inline-block;border-top:1px dashed #3b82f6;"></span>
+              <span style="width:12px;height:3px;border-radius:2px;background:#3b82f6;display:inline-block;"></span>
               <span style="color:var(--muted);">Net</span>
               <span id="fyEqNetVal" style="color:var(--muted);">—</span>
             </div>
@@ -2664,7 +2664,7 @@ function buildEquityCfg(labels, pnlData, netData, height) {
 
   if (netData) {
     datasets.push({
-      label: "Net", data: netData, borderColor: NET_COLOR, borderWidth: 2, borderDash: [5, 3],
+      label: "Net", data: netData, borderColor: NET_COLOR, borderWidth: 2,
       pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: NET_COLOR,
       fill: false, tension: 0
     });
