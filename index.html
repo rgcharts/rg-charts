@@ -1264,6 +1264,18 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
               <option value="2030">FY 2029-30</option>
             </select>
           </div>
+          <div style="display:flex;gap:18px;margin:-8px 0 12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;">
+              <span style="width:12px;height:3px;border-radius:2px;background:#10b981;display:inline-block;"></span>
+              <span style="color:var(--muted);">Gross</span>
+              <span id="fyEqGrossVal" style="color:var(--muted);">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;">
+              <span style="width:12px;height:3px;border-radius:2px;background:#3b82f6;display:inline-block;border-top:1px dashed #3b82f6;"></span>
+              <span style="color:var(--muted);">Net</span>
+              <span id="fyEqNetVal" style="color:var(--muted);">—</span>
+            </div>
+          </div>
           <div class="chart-wrap" style="flex:1;height:auto;min-height:280px;"><canvas id="chartFY"></canvas></div>
         </div>
         <div class="a-card" style="display:flex;flex-direction:column;">
@@ -2626,28 +2638,40 @@ const zeroLinePlugin = {
   }
 };
 
-function buildEquityCfg(labels, pnlData, height) {
+function buildEquityCfg(labels, pnlData, netData, height) {
   const lastVal = pnlData[pnlData.length - 1] || 0;
   const lineColor = lastVal >= 0 ? "#10b981" : "#ef4444";
   const GREEN = "#10b981", RED = "#ef4444";
   const GREEN_FILL = "rgba(16,185,129,0.20)", RED_FILL = "rgba(239,68,68,0.16)";
+  const NET_COLOR = "#3b82f6";
+
+  const datasets = [{
+    label: "Gross", data: pnlData, borderColor: lineColor, borderWidth: 2,
+    pointRadius: pnlData.length > 30 ? 0 : 3, pointHoverRadius: 5,
+    pointBackgroundColor: ctx => (ctx.raw ?? 0) >= 0 ? GREEN : RED,
+    fill: true,
+    backgroundColor: (ctx) => {
+      const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, height || 160);
+      g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.20)" : "rgba(239,68,68,0.16)");
+      g.addColorStop(1, "rgba(0,0,0,0)"); return g;
+    },
+    segment: {
+      borderColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN : RED,
+      backgroundColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN_FILL : RED_FILL,
+    },
+    tension: 0
+  }];
+
+  if (netData) {
+    datasets.push({
+      label: "Net", data: netData, borderColor: NET_COLOR, borderWidth: 2, borderDash: [5, 3],
+      pointRadius: 0, pointHoverRadius: 4, pointBackgroundColor: NET_COLOR,
+      fill: false, tension: 0
+    });
+  }
+
   return {
-    type: "line", data: { labels, datasets: [{
-      label: "Equity", data: pnlData, borderColor: lineColor, borderWidth: 2,
-      pointRadius: pnlData.length > 30 ? 0 : 3, pointHoverRadius: 5,
-      pointBackgroundColor: ctx => (ctx.raw ?? 0) >= 0 ? GREEN : RED,
-      fill: true,
-      backgroundColor: (ctx) => {
-        const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, height || 160);
-        g.addColorStop(0, lastVal >= 0 ? "rgba(16,185,129,0.20)" : "rgba(239,68,68,0.16)");
-        g.addColorStop(1, "rgba(0,0,0,0)"); return g;
-      },
-      segment: {
-        borderColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN : RED,
-        backgroundColor: ctx => ((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) >= 0 ? GREEN_FILL : RED_FILL,
-      },
-      tension: 0
-    }]},
+    type: "line", data: { labels, datasets },
     plugins: [zeroLinePlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
@@ -2657,7 +2681,7 @@ function buildEquityCfg(labels, pnlData, height) {
         tooltip: {
           backgroundColor: "#141720", borderColor: "rgba(255,255,255,0.08)", borderWidth: 1,
           titleColor: "#6b7280", bodyColor: "#f0f2f5", titleFont: { size: 10 }, bodyFont: { size: 12, weight: "600" },
-          callbacks: { label: c => " ₹" + (c.raw >= 0 ? "+" : "") + Math.abs(c.raw).toLocaleString("en-IN", { maximumFractionDigits: 0 }) }
+          callbacks: { label: c => " " + c.dataset.label + ": ₹" + (c.raw >= 0 ? "+" : "") + Math.abs(c.raw).toLocaleString("en-IN", { maximumFractionDigits: 0 }) }
         }
       },
       scales: {
@@ -2824,10 +2848,37 @@ function renderFYCurves() {
   const allTrades = fyMonths.flatMap(mk => (state.months[mk]?.trades || []));
   const { labels, equity, dd } = calcEquityAndDD(allTrades);
 
-  // Equity chart
+  // Net equity: gross cumulative P&L minus brokerage, spread proportionally
+  // per trade (brokerage is paid throughout the year, not all at the end),
+  // matching the same fyBrokerage figure used in the FY Performance card.
+  const fyCap = state.fyCapitals?.[fyEndYear] || 0;
+  const fyBrokerage = state.fyBrokerage?.[fyEndYear] || 0;
+  const totalTrades = equity.length - 1; // equity[0] = 0 is "Start"
+  const brokeragePerTrade = totalTrades > 0 ? fyBrokerage / totalTrades : 0;
+  const netEquity = equity.map((v, i) => parseFloat((v - brokeragePerTrade * i).toFixed(2)));
+
+  // Equity chart (gross + net)
   const ctx = document.getElementById("chartFY")?.getContext("2d"); if (!ctx) return;
   if (chartFYInst) chartFYInst.destroy();
-  chartFYInst = new Chart(ctx, buildEquityCfg(labels, equity, 200));
+  chartFYInst = new Chart(ctx, buildEquityCfg(labels, equity, netEquity, 200));
+
+  // Gross / Net legend values with % return on FY capital
+  const grossLast = equity[equity.length - 1] || 0;
+  const netLast = netEquity[netEquity.length - 1] || 0;
+  const grossPct = fyCap ? (grossLast / fyCap) * 100 : null;
+  const netPct = fyCap ? (netLast / fyCap) * 100 : null;
+  const grossValEl = document.getElementById("fyEqGrossVal");
+  const netValEl = document.getElementById("fyEqNetVal");
+  if (grossValEl) {
+    const pctStr = grossPct !== null ? " (" + (grossPct >= 0 ? "+" : "") + grossPct.toFixed(2) + "%)" : "";
+    grossValEl.textContent = "₹" + (grossLast >= 0 ? "+" : "") + fmt(grossLast) + pctStr;
+    grossValEl.style.color = grossLast > 0 ? "var(--green)" : grossLast < 0 ? "var(--red)" : "var(--muted)";
+  }
+  if (netValEl) {
+    const pctStr = netPct !== null ? " (" + (netPct >= 0 ? "+" : "") + netPct.toFixed(2) + "%)" : "";
+    netValEl.textContent = "₹" + (netLast >= 0 ? "+" : "") + fmt(netLast) + pctStr;
+    netValEl.style.color = netLast > 0 ? "var(--green)" : netLast < 0 ? "var(--red)" : "var(--muted)";
+  }
 
   // Drawdown chart
   const ctx2 = document.getElementById("chartFYDD")?.getContext("2d"); if (!ctx2) return;
