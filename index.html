@@ -502,12 +502,15 @@ th.sort-asc  .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: var(--acce
 .c-cell.win  { background: rgba(16,185,129,0.12); }
 .c-cell.loss { background: rgba(239,68,68,0.10); }
 .c-cell.today { outline:1.5px solid var(--accent2); outline-offset:-1.5px; }
+.c-cell.holiday { background: rgba(167,139,250,0.14); cursor: help; }
+.c-cell.holiday .c-day { color: var(--accent3); }
 .c-day { font-size:13px; font-weight:700; line-height:1; color:var(--muted); }
 .c-cell.win  .c-day { color: var(--green); }
 .c-cell.loss .c-day { color: var(--red); }
 .c-pnl { font-size:11px; font-weight:700; margin-top:3px; line-height:1; }
 .c-cell.win  .c-pnl { color: var(--green); }
 .c-cell.loss .c-pnl { color: var(--red); }
+.c-holiday-label { font-size:8px; font-weight:700; color: var(--accent3); margin-top:3px; line-height:1.15; text-align:center; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; padding:0 2px; }
 .cal-nav { display:flex; align-items:center; gap:4px; }
 .cal-nav button { background:none; border:none; color:var(--muted); cursor:pointer; padding:2px 5px; border-radius:5px; font-size:14px; }
 .cal-nav button:hover { color:var(--text); }
@@ -2560,6 +2563,29 @@ function calNext() {
   loadMonth(); renderCalendar(); renderMonthCurve(); updateFYStats();
 }
 
+// NSE/BSE trading holidays for calendar year 2026 (source: NSE/Zerodha holiday calendar)
+const NSE_HOLIDAYS_2026 = {
+  "2026-01-15": "Municipal Corp. Election (Maharashtra)",
+  "2026-01-26": "Republic Day",
+  "2026-03-03": "Holi",
+  "2026-03-26": "Shri Ram Navami",
+  "2026-03-31": "Shri Mahavir Jayanti",
+  "2026-04-03": "Good Friday",
+  "2026-04-14": "Dr. Baba Saheb Ambedkar Jayanti",
+  "2026-05-01": "Maharashtra Day",
+  "2026-05-28": "Bakri Eid",
+  "2026-06-26": "Moharram",
+  "2026-09-14": "Ganesh Chaturthi",
+  "2026-10-02": "Mahatma Gandhi Jayanti",
+  "2026-10-20": "Dussehra",
+  "2026-11-10": "Diwali-Balipratipada",
+  "2026-11-24": "Prakash Gurpurb Sri Guru Nanak Dev",
+  "2026-12-25": "Christmas"
+};
+function getTradingHoliday(ds) {
+  return NSE_HOLIDAYS_2026[ds] || null;
+}
+
 function renderCalendar() {
   const d = getCalMonth();
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2587,15 +2613,19 @@ function renderCalendar() {
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = year + "-" + String(month + 1).padStart(2, "0") + "-" + String(day).padStart(2, "0");
     const pnl = dayMap[ds];
+    const holidayName = getTradingHoliday(ds);
     let cls = "no-trade", pnlHtml = "";
     if (pnl !== undefined) {
       cls = pnl >= 0 ? "win" : "loss";
       weekPnl += pnl;
       pnlHtml = '<div class="c-pnl">' + (pnl >= 0 ? "+" : "") + fmtPnl(pnl) + '</div>';
     }
+    if (holidayName) cls += " holiday";
+    const holidayHtml = holidayName ? '<div class="c-holiday-label">' + holidayName + '</div>' : "";
+    const titleAttr = holidayName ? ` title="Trading holiday: ${holidayName}"` : "";
     const todayCls = ds === todayStr ? " today" : "";
     const clickable = pnl !== undefined ? ` onclick="openDayModal('${ds}')" style="cursor:pointer;"` : "";
-    html += '<div class="c-cell ' + cls + todayCls + '"' + clickable + '><div class="c-day">' + day + '</div>' + pnlHtml + '</div>';
+    html += '<div class="c-cell ' + cls + todayCls + '"' + clickable + titleAttr + '><div class="c-day">' + day + '</div>' + pnlHtml + holidayHtml + '</div>';
     cellCount++;
     const dayOfWeek = new Date(year, month, day).getDay();
     // After Saturday (6) or last day of month → insert weekly P&L cell
